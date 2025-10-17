@@ -4,49 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 輔助朗讀評分器</title>
-    <!-- 載入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 載入 html2canvas 函式庫，用於截圖功能 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* 設定字體為 Inter */
         html { font-family: 'Inter', sans-serif; }
-        /* 隱藏預設的 HTML 箭頭 */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
             margin: 0; 
         }
-        /* 定義可收合區塊的 CSS 類別 */
         .collapsible {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease-out;
         }
         .collapsible.active {
-            max-height: 1000px; /* 設置一個足夠大的值來展開內容 */
+            max-height: 1000px;
             transition: max-height 0.5s ease-in;
         }
-        
-        /* --- 點擊單字樣式 (TTS) - 優化觸控目標 --- */
         .pronounceable-word {
             cursor: pointer;
             transition: all 0.2s;
-            padding: 4px 6px; /* 加大觸控目標區域 */
-            margin: 1px 1px; /* 增加單字間距，防止誤觸 */
+            padding: 4px 6px;
+            margin: 1px 1px;
             border-radius: 6px;
         }
         .pronounceable-word:hover {
-            background-color: #e0f2fe; /* 淺藍色背景 */
-            color: #0c4a6e !important; /* 強制深藍色文字 */
+            background-color: #e0f2fe;
+            color: #0c4a6e !important;
             text-decoration: underline;
         }
-        /* ------------------------------------- */
+        button, input { touch-action: manipulation; }
+        button { min-height: 44px; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 sm:p-8">
     
-    <!-- 引入 Firebase SDK 模組 (已統一版本為 11.9.0) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
@@ -60,121 +53,146 @@
         window.getFirestore = getFirestore; 
     </script>
 
-    <!-- 主應用程式容器 (用於截圖) -->
-    <div id="app" class="max-w-4xl mx-auto bg-white shadow-2xl rounded-xl p-6 sm:p-10 border border-blue-100">
+    <div id="app" class="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-4 sm:p-6 border border-gray-200">
         
-        <!-- 標頭 -->
-        <header class="text-center mb-6">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-blue-700 mb-1">AI 輔助朗讀評分器</h1>
-            <p class="text-sm text-gray-600">錄製您的朗讀音檔，利用 Gemini API 獲得即時語音評分與回饋。</p>
-        </header>
-
-        <!-- 隱藏式使用說明 (Collapsible Instructions) -->
-        <section class="mb-6">
+        <!-- 精簡標題列 + 使用說明按鈕 -->
+        <header class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-blue-700">AI 輔助朗讀評分器</h1>
+                <p class="text-xs text-gray-500 mt-0.5">利用 Gemini API 進行即時語音評分</p>
+            </div>
             <button onclick="toggleInstructions()" 
                     id="instructionsToggle"
-                    class="w-full text-left p-4 bg-gray-100 text-gray-700 font-bold rounded-lg shadow-sm hover:bg-gray-200 transition duration-150 flex justify-between items-center text-base">
-                <span>點擊展開/收合 使用說明</span>
-                <svg id="toggleIcon" class="w-5 h-5 transform rotate-0 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    class="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition flex items-center space-x-1">
+                <span>使用說明</span>
+                <svg id="toggleIcon" class="w-4 h-4 transform rotate-0 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
-            
+        </header>
+
+        <!-- 使用說明摺疊內容 -->
+        <section class="mb-4">
             <div id="instructionsContent" class="collapsible">
-                <div class="p-4 bg-gray-50 border border-gray-200 rounded-b-lg text-gray-700 text-sm space-y-3">
-                    <p class="font-bold text-gray-800">💡 如何使用本工具 (請遵循以下 4 個步驟):</p>
-                    <ol class="list-decimal list-inside space-y-2 ml-2">
-                        <li>
-                            <span class="font-semibold">步驟 1: 取得 API Key 並貼入</span>
-                            <p class="ml-2 mt-0.5">請從 <a href="https://aistudio.google.com/" target="_blank" class="text-blue-500 underline font-mono">aistudio.google.com</a> 取得您的 **Gemini API Key**，並貼入上方的「設定」欄位中。</p>
-                        </li>
-                        <li>
-                            <span class="font-semibold">步驟 2: 輸入文稿</span>
-                            <p class="ml-2 mt-0.5">將您打算朗讀的**英文文稿**貼入第一個文字框。您可以使用右側的下拉選單調整字體大小。</p>
-                        </li>
-                        <li>
-                            <span class="font-semibold">步驟 3: 錄製語音</span>
-                            <p class="ml-2 mt-0.5">點擊 **開始錄音** 按鈕。瀏覽器可能會要求麥克風權限，請務必允許。</p>
-                        </li>
-                        <li>
-                            <span class="font-semibold">步驟 4: 停止並等待報告</span>
-                            <p class="ml-2 mt-0.5">朗讀完畢後，點擊 **停止錄音並評分**。AI 會在 10-30 秒內返回評分結果、中文回饋，以及彩色標註的轉錄稿。</p>
-                        </li>
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-gray-700 text-sm space-y-2">
+                    <p class="font-semibold text-gray-800">📝 快速開始:</p>
+                    <ol class="list-decimal list-inside space-y-1 ml-2 text-xs">
+                        <li><strong>取得 API Key:</strong> 從 <a href="https://aistudio.google.com/" target="_blank" class="text-blue-600 underline">aistudio.google.com</a> 取得並貼上</li>
+                        <li><strong>貼上文稿:</strong> 將英文朗讀文稿貼入下方文字框</li>
+                        <li><strong>開始錄音:</strong> 最長 3 分鐘,瀏覽器會要求麥克風權限</li>
+                        <li><strong>查看結果:</strong> AI 將在 10-30 秒內返回評分與彩色轉錄稿</li>
                     </ol>
+                    <p class="text-xs text-orange-600">⚠️ 公用裝置使用者請在完成後點擊「清除」,或系統將在閒置 10 分鐘後自動清除。</p>
                 </div>
             </div>
         </section>
 
-        <!-- API Key 輸入欄位 (針對行動裝置優化佈局) -->
-        <section class="mb-6 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-            <h2 class="text-lg font-semibold text-yellow-800 mb-2">設定: Gemini API Key</h2>
-            
-            <!-- 行動裝置：垂直堆疊 (flex-col)，桌面：水平並排 (sm:flex-row) -->
-            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                <input type="password" id="apiKeyInput" 
-                       class="flex-grow p-3 border-2 border-yellow-200 rounded-lg focus:ring-yellow-500 focus:border-yellow-500 transition duration-150" 
-                       placeholder="請貼上您的 Gemini API Key (GitHub 部署必須)">
-                <button id="clearKeyButton" 
-                        class="w-full sm:w-auto px-4 py-3 bg-gray-300 text-gray-800 font-bold rounded-lg shadow hover:bg-gray-400 transition duration-200 disabled:opacity-50 flex items-center justify-center sm:whitespace-nowrap" 
-                        onclick="clearApiKey()">
-                    清除 Key
-                </button>
+        <!-- API Key 精簡區塊 -->
+        <section class="mb-4 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <h2 class="text-sm font-semibold text-yellow-800">🔑 Gemini API Key</h2>
+                
+                <div id="apiKeySection">
+                    <div class="flex space-x-2">
+                        <button id="pasteKeyButton" onclick="pasteApiKey()"
+                                class="px-3 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition flex items-center">
+                            📋 貼上
+                        </button>
+                        <button id="manualKeyButton" onclick="showManualInput()"
+                                class="px-3 py-2 bg-gray-300 text-gray-800 text-sm font-bold rounded-lg hover:bg-gray-400 transition flex items-center">
+                            ✏️ 輸入
+                        </button>
+                    </div>
+                    
+                    <div id="manualInputArea" class="hidden mt-2 space-y-2">
+                        <input type="password" id="manualApiKeyInput" 
+                               class="w-full p-2 text-sm border-2 border-yellow-200 rounded-lg focus:ring-yellow-500 focus:border-yellow-500" 
+                               placeholder="請輸入 Gemini API Key">
+                        <div class="flex space-x-2">
+                            <button onclick="confirmManualKey()"
+                                    class="flex-1 px-3 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700">
+                                ✓ 確認
+                            </button>
+                            <button onclick="cancelManualInput()"
+                                    class="flex-1 px-3 py-1.5 bg-gray-300 text-gray-800 text-sm font-bold rounded-lg hover:bg-gray-400">
+                                ✕ 取消
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="keySetDisplay" class="hidden">
+                        <div class="flex items-center justify-between p-2 bg-green-50 rounded-lg border border-green-200">
+                            <div class="flex-1">
+                                <span class="text-green-700 text-sm font-bold">✅ 已設定</span>
+                                <span id="maskedKey" class="text-gray-500 text-xs ml-2"></span>
+                                <p class="text-xs text-orange-600 mt-0.5">⏱️ 閒置 10 分鐘自動清除</p>
+                            </div>
+                            <button onclick="clearApiKey()"
+                                    class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg font-bold hover:bg-red-600">
+                                清除
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <!-- 優化連結：直接指向 aistudio.google.com -->
-            <p class="text-xs text-yellow-600 mt-2">在 GitHub Pages 環境中，您需要從 <a href="https://aistudio.google.com/" target="_blank" class="text-blue-500 underline">aistudio.google.com</a> 取得並輸入您的 Key。</p>
-            <p id="keyError" class="text-red-500 text-sm mt-1 hidden">請輸入有效的 API Key 才能評分。</p>
+            <p id="keyError" class="text-red-500 text-xs mt-1 hidden">請輸入有效的 API Key 才能評分。</p>
         </section>
 
-        <!-- 步驟 1: 輸入朗讀文稿 (最大化) -->
-        <section class="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-3 space-y-2 sm:space-y-0">
-                <h2 class="text-lg font-semibold text-blue-600">步驟 1: 輸入朗讀文稿 (英文)</h2>
-                
-                <!-- 新增字體大小調整功能 -->
+        <!-- 文稿輸入區 (最大化) -->
+        <section class="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-sm font-semibold text-blue-600">📝 朗讀文稿 (英文)</h2>
                 <div class="flex items-center space-x-2">
-                    <label for="fontSizeSelector" class="text-sm text-gray-700">字體大小:</label>
                     <select id="fontSizeSelector" onchange="updateScriptFontSize(this.value)" 
-                            class="p-2 border border-blue-300 rounded-lg text-sm bg-white focus:ring-blue-500">
-                        <option value="14px">14px (預設)</option>
-                        <option value="16px">16px</option>
+                            class="p-1.5 border border-blue-300 rounded text-xs bg-white focus:ring-blue-500">
+                        <option value="14px">14px</option>
+                        <option value="16px" selected>16px</option>
                         <option value="18px">18px</option>
-                        <option value="20px">20px (最大)</option>
+                        <option value="20px">20px</option>
                     </select>
                 </div>
             </div>
-            <!-- 增加預設行數 (rows=8) 以最大化文章空間 -->
-            <textarea id="readingScript" rows="8" class="w-full p-3 border-2 border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 text-base" placeholder="請將您要朗讀的英文文稿貼在這裡，例如：'Sweet Treats in the Fall. Sara: Do I see a picture of a pie? Greg: You do.'"></textarea>
-            <p id="scriptError" class="text-red-500 text-sm mt-1 hidden">請輸入朗讀文稿。</p>
-        </section>
-
-        <!-- 步驟 2: 錄製語音 -->
-        <section class="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400 text-center">
-            <h2 class="text-lg font-semibold text-green-600 mb-3">步驟 2: 錄製您的朗讀</h2>
             
-            <div id="statusMessage" class="text-base font-medium text-gray-700 mb-3">準備就緒，請點擊「開始錄音」。</div>
-
-            <!-- 按鈕針對手機優化：保持中央對齊，但在小螢幕上讓按鈕更容易點擊 -->
-            <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <button id="startRecording" 
-                        class="px-6 py-3 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-200 disabled:opacity-50 flex items-center justify-center text-base w-full sm:w-auto" 
-                        onclick="startRecording()" disabled>
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a4 4 0 00-4 4v2m8-6a4 4 0 014 4v2"></path></svg>
-                    開始錄音
-                </button>
-                <button id="stopRecording" 
-                        class="px-6 py-3 bg-red-600 text-white font-bold rounded-full shadow-lg hover:bg-red-700 transition duration-200 disabled:opacity-50 flex items-center justify-center text-base w-full sm:w-auto" 
-                        onclick="stopRecording()" disabled>
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6"></path></svg>
-                    停止錄音並評分
+            <div class="relative">
+                <textarea id="readingScript" rows="12" class="w-full p-3 pr-20 border-2 border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition text-base leading-relaxed" placeholder="請將英文文稿貼在這裡..."></textarea>
+                <button onclick="pasteScript()" 
+                        class="absolute top-2 right-2 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">
+                    📋 貼上
                 </button>
             </div>
+            <p id="scriptError" class="text-red-500 text-xs mt-1 hidden">請輸入朗讀文稿。</p>
+        </section>
+
+        <!-- 錄音控制區 (緊湊橫向設計) -->
+        <section class="mb-4 p-3 bg-green-50 rounded-lg border-l-4 border-green-400">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 mb-2">
+                <div>
+                    <h2 class="text-sm font-semibold text-green-600">🎤 錄製朗讀</h2>
+                    <p class="text-xs text-gray-600">最長 3 分鐘</p>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button id="startRecording" 
+                            class="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition disabled:opacity-50 flex items-center" 
+                            onclick="startRecording()" disabled>
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3"/></svg>
+                        開始
+                    </button>
+                    <button id="stopRecording" 
+                            class="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center" 
+                            onclick="stopRecording()" disabled>
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="6" width="8" height="8"/></svg>
+                        停止
+                    </button>
+                </div>
+            </div>
             
-            <audio id="audioPlayback" controls class="mt-4 w-full hidden"></audio>
+            <div id="statusMessage" class="text-sm text-gray-700 mb-2">準備就緒,請點擊「開始」錄音。</div>
+            <audio id="audioPlayback" controls class="w-full hidden h-8"></audio>
         </section>
 
         <!-- 步驟 3: 評分結果 -->
         <section id="resultsSection" class="p-6 bg-white rounded-xl shadow-2xl hidden border-2 border-gray-200">
             <h2 class="text-xl font-extrabold text-gray-800 mb-4 border-b pb-2">AI 評分報告</h2>
             
-            <!-- 報告標頭資訊 (顯示使用者資訊) -->
             <div class="mb-5 space-y-1 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
                 <p><span class="font-semibold text-gray-800">報告生成時間:</span> <span id="assessmentDateTime">--</span></p>
                 <p><span class="font-semibold text-gray-800">使用者名稱:</span> <span id="userDisplayName" class="break-all text-xs font-mono text-blue-600">載入中...</span></p>
@@ -183,18 +201,14 @@
                 <p><span class="font-semibold text-gray-800">文稿標題:</span> <span id="scriptTitleDisplay" class="italic">--</span></p>
             </div>
             
-            <!-- Loading Indicator -->
             <div id="loadingIndicator" class="text-center py-8 hidden">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                 <p class="text-blue-600 font-medium">AI 正在努力聆聽與評分中... 請稍候 (這可能需要 10-30 秒)</p>
             </div>
 
-            <!-- Score and Feedback -->
             <div id="scoreDisplay" class="hidden">
-                
-                <!-- 分數區塊：手機上垂直堆疊，桌面並排 -->
                 <div class="flex flex-col sm:flex-row items-center sm:justify-between mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-2 sm:space-y-0">
-                    <h3 class="text-xl font-bold text-gray-800">準確度分數：</h3>
+                    <h3 class="text-xl font-bold text-gray-800">準確度分數:</h3>
                     <div id="scorePercentage" class="text-5xl font-extrabold text-blue-600">--</div>
                 </div>
 
@@ -203,42 +217,35 @@
                     <p id="feedbackSummary" class="text-gray-700 leading-relaxed">--</p>
                 </div>
 
-                <!-- 彩色轉錄稿顯示區 (字體調整為 16px) -->
                 <div class="mb-8 p-4 bg-white border rounded-lg shadow-inner">
                     <h3 class="text-lg font-bold text-gray-800 mb-2">
                         彩色錯誤分析轉錄稿 
                         <span class="text-sm text-blue-500 font-normal block sm:inline ml-0 sm:ml-2 mt-1 sm:mt-0"> (點擊任何單字即可聽取正確發音)</span>
                     </h3>
                     <p class="text-sm text-gray-600 mb-3">
-                        <span class="text-green-700 font-bold">綠色</span>=正確; 
-                        <span class="text-red-600 font-bold">紅色</span>=發音錯誤; 
-                        <span class="text-purple-600 font-bold">紫色</span>=多讀的字; 
-                        <span class="text-gray-500 underline">底線灰色</span>=遺漏的字 (原文)。
+                        <span class="text-green-700 font-bold">綠色粗體</span>=正確發音; 
+                        <span class="text-red-600 font-bold">紅色粗體</span>=發音錯誤; 
+                        <span class="text-purple-600 font-bold bg-purple-50 px-1">紫色+淺底</span>=多讀的字; 
+                        <span class="text-gray-600 underline decoration-gray-500 decoration-2 bg-gray-200 px-1">深灰底線</span>=遺漏未讀的字 (原文)。
                     </p>
-                    <!-- 轉錄稿容器：字體加大，提升觸控體驗 -->
-                    <div id="coloredTranscript" class="text-lg leading-relaxed font-semibold flex flex-wrap">
-                        <!-- 轉錄結果將在此處以彩色顯示 -->
-                    </div>
+                    <div id="coloredTranscript" class="text-lg leading-relaxed font-semibold flex flex-wrap"></div>
                 </div>
                 
-                <!-- 下載按鈕 (行動裝置垂直堆疊) -->
                 <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center">
                     <button onclick="downloadAudio()" 
                             class="px-6 py-4 bg-gray-700 text-white font-bold rounded-lg shadow-md hover:bg-gray-800 transition duration-200 flex items-center justify-center w-full sm:w-auto">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0v-4a3 3 0 116 0v4z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12a7 7 0 10-14 0h14zM12 19V5m-4 8h8"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0v-4a3 3 0 116 0v4z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12a7 7 0 10-14 0h14zM12 19V5m-4 8h8"></path></svg>
                         下載音檔 (.webm)
                     </button>
                     <button onclick="captureScreenshot()" 
                             class="px-6 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 transition duration-200 flex items-center justify-center w-full sm:w-auto">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         下載報告截圖 (.png)
                     </button>
                 </div>
-
             </div>
         </section>
 
-        <!-- 錯誤訊息顯示區 -->
         <div id="apiError" class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg mt-8 hidden" role="alert">
             <p class="font-bold">發生錯誤</p>
             <p id="apiErrorMessage"></p>
@@ -246,27 +253,43 @@
 
     </div>
 
-    <!-- 應用程式邏輯 -->
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- 全域清除按鈕 -->
+    <button onclick="manualCleanup()" 
+            id="globalCleanupBtn"
+            class="hidden fixed bottom-4 right-4 px-6 py-3 bg-red-600 text-white font-bold rounded-full shadow-2xl hover:bg-red-700 transition duration-200 z-50 flex items-center">
+        🚪 清除資料並離開
+    </button>
+
     <script>
-        // --- 設定與常數 ---
-        const getApiKey = () => document.getElementById('apiKeyInput').value.trim() || "";
-        const API_MODEL = "gemini-2.5-flash-preview-09-2025";
+        const API_MODEL = "gemini-2.0-flash-exp";
+        const MAX_RECORDING_SECONDS = 180;
+        const WARNING_AT_SECONDS = 150;
+        const IDLE_WARNING_TIME = 9 * 60 * 1000;
+        const IDLE_CLEANUP_TIME = 10 * 60 * 1000;
+        const MONITORED_EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll'];
         
-        // --- 錄音相關變數 ---
         let mediaRecorder;
         let audioChunks = [];
         let audioBlob = null;
         let audioBase64 = '';
-
-        // --- TTS 相關變數 ---
-        const synth = window.speechSynthesis;
-
-        // --- Firebase 變數 ---
-        let auth;
-        let currentUserId = 'anonymous-session'; // 初始化為預設值
+        let recordingStartTime = 0;
+        let recordingTimer = null;
+        let mediaStream = null;
         
-        // --- DOM 元素 ---
+        let apiKey = '';
+        let lastActivityTime = Date.now();
+        let warningTimer = null;
+        let autoCleanupTimer = null;
+        
+        const synth = window.speechSynthesis;
+        let auth;
+        let currentUserId = 'anonymous-session';
+        
         const apiKeyInput = document.getElementById('apiKeyInput');
+        const manualApiKeyInput = document.getElementById('manualApiKeyInput');
         const keyError = document.getElementById('keyError');
         const scriptInput = document.getElementById('readingScript');
         const startBtn = document.getElementById('startRecording');
@@ -287,34 +310,183 @@
         const userDisplayName = document.getElementById('userDisplayName');
         const userEmail = document.getElementById('userEmail');
         const coloredTranscript = document.getElementById('coloredTranscript');
+        const globalCleanupBtn = document.getElementById('globalCleanupBtn');
 
+        function showToast(message, type = 'info', duration = 3000) {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-orange-500',
+                info: 'bg-blue-500'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300`;
+            toast.textContent = message;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px)';
+            
+            const container = document.getElementById('toastContainer');
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            }, 10);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
 
-        // --- TTS 播放發音功能 (核心整合) ---
+        async function pasteApiKey() {
+            if (!navigator.clipboard || !navigator.clipboard.readText) {
+                showToast('⚠️ 此裝置不支援自動貼上,請使用「手動輸入」', 'warning');
+                showManualInput();
+                return;
+            }
+            
+            try {
+                const text = await navigator.clipboard.readText();
+                const trimmed = text.trim();
+                
+                if (!validateApiKey(trimmed)) {
+                    showToast('❌ 貼上的內容不是有效的 Gemini API Key', 'error');
+                    showManualInput();
+                    return;
+                }
+                
+                apiKey = trimmed;
+                updateApiKeyUI();
+                resetIdleTimer();
+                showToast('✅ API Key 已設定', 'success');
+                
+            } catch (err) {
+                console.error('無法讀取剪貼簿:', err);
+                showToast('⚠️ 無法自動貼上,請使用「手動輸入」', 'warning');
+                showManualInput();
+            }
+        }
 
-        /**
-         * 使用 Web Speech API 播放單字發音
-         * @param {string} text - 要發音的單字
-         */
+        function showManualInput() {
+            document.getElementById('manualInputArea').classList.remove('hidden');
+            document.getElementById('pasteKeyButton').classList.add('hidden');
+            document.getElementById('manualKeyButton').classList.add('hidden');
+            manualApiKeyInput.focus();
+        }
+
+        function cancelManualInput() {
+            document.getElementById('manualInputArea').classList.add('hidden');
+            document.getElementById('pasteKeyButton').classList.remove('hidden');
+            document.getElementById('manualKeyButton').classList.remove('hidden');
+            manualApiKeyInput.value = '';
+        }
+
+        function confirmManualKey() {
+            const inputKey = manualApiKeyInput.value.trim();
+            
+            if (!validateApiKey(inputKey)) {
+                showToast('❌ 請輸入有效的 Gemini API Key', 'error');
+                return;
+            }
+            
+            apiKey = inputKey;
+            updateApiKeyUI();
+            resetIdleTimer();
+            cancelManualInput();
+            showToast('✅ API Key 已設定', 'success');
+        }
+
+        function validateApiKey(key) {
+            return /^AIza[0-9A-Za-z\-_]{35}$/.test(key);
+        }
+
+        function updateApiKeyUI() {
+            const pasteBtn = document.getElementById('pasteKeyButton');
+            const manualBtn = document.getElementById('manualKeyButton');
+            const keySetDisplay = document.getElementById('keySetDisplay');
+            const maskedKey = document.getElementById('maskedKey');
+            
+            if (!apiKey) {
+                pasteBtn.classList.remove('hidden');
+                manualBtn.classList.remove('hidden');
+                keySetDisplay.classList.add('hidden');
+                globalCleanupBtn.classList.add('hidden');
+            } else {
+                pasteBtn.classList.add('hidden');
+                manualBtn.classList.add('hidden');
+                keySetDisplay.classList.remove('hidden');
+                maskedKey.textContent = `(${apiKey.slice(0, 4)}••••••••${apiKey.slice(-4)})`;
+                globalCleanupBtn.classList.remove('hidden');
+            }
+        }
+
+        async function pasteScript() {
+            if (!navigator.clipboard || !navigator.clipboard.readText) {
+                showToast('⚠️ 無法自動貼上,請手動貼上 (Ctrl+V 或長按)', 'warning');
+                scriptInput.focus();
+                return;
+            }
+            
+            try {
+                const text = await navigator.clipboard.readText();
+                scriptInput.value = text.trim();
+                scriptError.classList.add('hidden');
+                resetIdleTimer();
+                showToast('✅ 文稿已貼上', 'success');
+            } catch (err) {
+                console.error('無法讀取剪貼簿:', err);
+                showToast('⚠️ 無法自動貼上,請手動貼上 (Ctrl+V 或長按)', 'warning');
+                scriptInput.focus();
+            }
+        }
+
+        function clearApiKey() {
+            const confirmed = confirm('確定要清除 API Key 嗎?');
+            if (confirmed) {
+                apiKey = '';
+                apiKeyInput.value = '';
+                manualApiKeyInput.value = '';
+                updateApiKeyUI();
+                resetIdleTimer();
+                showToast('✅ API Key 已清除', 'success');
+                statusMsg.textContent = 'API Key 已清除。現在可以安全地離開公用裝置。';
+            }
+        }
+
+        function toggleInstructions() {
+            const content = document.getElementById('instructionsContent');
+            const icon = document.getElementById('toggleIcon');
+            
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                icon.classList.remove('rotate-180');
+            } else {
+                content.classList.add('active');
+                icon.classList.add('rotate-180');
+            }
+        }
+
+        function updateScriptFontSize(size) {
+            scriptInput.style.fontSize = size;
+        }
+
         function speakWord(text) {
             if (!('speechSynthesis' in window) || !synth) {
-                apiErrorMessage.textContent = '瀏覽器不支援發音功能。請使用 Chrome 或 Safari。';
-                apiError.classList.remove('hidden');
+                showToast('❌ 瀏覽器不支援發音功能', 'error');
                 return;
             }
 
-            // 如果目前正在發音，先停止
             if (synth.speaking) {
                 synth.cancel();
             }
 
-            // 移除標點符號，確保發音準確
             const cleanText = text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
-
             if (!cleanText) return;
 
             const utterance = new SpeechSynthesisUtterance(cleanText);
-            
-            // 設定語言為美式英文 (en-US)
             utterance.lang = 'en-US'; 
             utterance.pitch = 1.0; 
             utterance.rate = 1.0; 
@@ -324,76 +496,31 @@
             };
 
             utterance.onend = () => {
-                // 發音結束後，恢復狀態訊息
                 setTimeout(() => {
-                     // 只有在沒有其他重要訊息時才重設
-                     if (statusMsg.textContent.startsWith('🔊')) {
-                         statusMsg.textContent = '評分報告已更新。';
-                     }
+                    if (statusMsg.textContent.startsWith('🔊')) {
+                        statusMsg.textContent = '評分報告已更新。';
+                    }
                 }, 500);
             };
 
             utterance.onerror = (event) => {
                 console.error('Speech Synthesis Error:', event.error);
-                statusMsg.textContent = `❌ 發音錯誤: ${event.error}. 請重試。`;
+                showToast('❌ 發音錯誤,請重試', 'error');
             };
 
             synth.speak(utterance);
         }
 
-        window.speakWord = speakWord; // 暴露給 HTML 元素的 onclick 呼叫
+        window.speakWord = speakWord;
 
-
-        // --- 原有函式 (已修訂) ---
-
-        /**
-         * 展開/收合使用說明區塊
-         */
-        function toggleInstructions() {
-            const content = document.getElementById('instructionsContent');
-            const icon = document.getElementById('toggleIcon');
-            
-            if (content.classList.contains('active')) {
-                // 收合
-                content.classList.remove('active');
-                icon.classList.remove('rotate-180');
-            } else {
-                // 展開
-                content.classList.add('active');
-                icon.classList.add('rotate-180');
-            }
-        }
-
-        /**
-         * 調整輸入文稿的字體大小
-         * @param {string} size - CSS 字體大小值 (e.g., '16px')
-         */
-        function updateScriptFontSize(size) {
-            scriptInput.style.fontSize = size;
-        }
-
-        /**
-         * 清除 API Key 輸入欄位
-         */
-        function clearApiKey() {
-            apiKeyInput.value = '';
-            keyError.classList.add('hidden'); 
-            apiKeyInput.disabled = false;
-            statusMsg.textContent = 'API Key 已清除。現在可以安全地離開公用裝置。';
-        }
-
-        /**
-         * 初始化 Firebase 並處理使用者認證
-         */
         async function initializeFirebase() {
             try {
-                // 1. 取得全域變數 (Firebase Config)
                 const firebaseConfig = typeof __firebase_config !== 'undefined' 
                     ? JSON.parse(__firebase_config) 
                     : null;
                 
                 if (!firebaseConfig) {
-                    console.warn("Firebase config not found. Running in standalone mode without auth.");
+                    console.warn("Firebase config not found. Running in standalone mode.");
                     userDisplayName.textContent = '匿名使用者 (無認證)';
                     userEmail.textContent = '無 Email 資訊';
                     currentUserId = `anon-${Date.now()}-${Math.floor(Math.random() * 999)}`;
@@ -402,12 +529,9 @@
                     return;
                 }
 
-                // 2. 初始化 Firebase App
                 const app = window.initializeApp(firebaseConfig);
-                // 修正：確保在 app 初始化後呼叫 getAuth
                 auth = window.getAuth(app); 
                 
-                // 3. 處理認證狀態
                 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 
                 if (initialAuthToken) {
@@ -416,41 +540,29 @@
                     await window.signInAnonymously(auth);
                 }
 
-                // 4. 設定認證狀態變更監聽器
                 window.onAuthStateChanged(auth, (user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        // 顯示使用者名稱和 Email
                         userDisplayName.textContent = user.displayName || '未命名使用者';
                         userEmail.textContent = user.email || '無 Email 資訊';
                         currentUserIdDisplay.textContent = user.uid;
                     } else {
-                        // 匿名登入或登出
                         currentUserId = 'anonymous-session';
                         userDisplayName.textContent = '匿名使用者';
                         userEmail.textContent = '無 Email 資訊';
                         currentUserIdDisplay.textContent = '未登入 (使用匿名 ID)';
                     }
-                    // 認證完成後啟用錄音按鈕
                     startBtn.disabled = false;
                 });
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                if (error.message.includes("Component auth has not been registered yet")) {
-                    apiErrorMessage.textContent = `Firebase 認證元件載入失敗。這通常是 SDK 版本衝突或載入順序問題。`;
-                } else {
-                    apiErrorMessage.textContent = `Firebase 初始化失敗: ${error.message}`;
-                }
-                apiError.classList.remove('hidden');
+                showToast('⚠️ Firebase 初始化失敗,部分功能可能受限', 'warning');
+                startBtn.disabled = false;
             }
         }
 
-        /**
-         * 啟動錄音功能
-         */
         async function startRecording() {
-            // 檢查文稿是否輸入
             if (scriptInput.value.trim() === '') {
                 scriptError.classList.remove('hidden');
                 scriptInput.focus();
@@ -459,26 +571,22 @@
                 scriptError.classList.add('hidden');
             }
             
-            // 檢查 API Key 是否存在 (GitHub 部署必須)
-            if (!getApiKey()) {
+            if (!apiKey) {
                 keyError.classList.remove('hidden');
-                apiKeyInput.focus();
+                showToast('❌ 請先設定 API Key', 'error');
                 return;
             } else {
                 keyError.classList.add('hidden');
             }
 
-
-            // 清理 UI
             apiError.classList.add('hidden');
             resultsSection.classList.add('hidden');
             audioPlayback.classList.add('hidden');
             audioPlayback.src = '';
             
             try {
-                // 請求麥克風權限
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(mediaStream);
                 audioChunks = [];
 
                 mediaRecorder.ondataavailable = event => {
@@ -486,50 +594,104 @@
                 };
 
                 mediaRecorder.onstart = () => {
-                    statusMsg.textContent = '🔴 錄音中... 點擊「停止錄音」結束。';
+                    recordingStartTime = Date.now();
                     startBtn.disabled = true;
                     stopBtn.disabled = false;
-                    apiKeyInput.disabled = true; // 錄音時禁用 key 輸入
-                    scriptInput.disabled = true; // 錄音時禁用文稿輸入
+                    scriptInput.disabled = true;
+                    
+                    recordingTimer = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                        const remaining = MAX_RECORDING_SECONDS - elapsed;
+                        updateRecordingTimer(elapsed, remaining);
+                        
+                        if (remaining === 30 && remaining > 0) {
+                            showToast('⚠️ 剩餘 30 秒', 'warning');
+                        }
+                        
+                        if (remaining <= 0) {
+                            stopRecording();
+                            showToast('⏰ 已達錄音時限 (3分鐘)', 'warning', 4000);
+                        }
+                    }, 1000);
                 };
 
                 mediaRecorder.onstop = () => {
-                    // 停止所有軌道，釋放麥克風
-                    stream.getTracks().forEach(track => track.stop()); 
+                    if (recordingTimer) {
+                        clearInterval(recordingTimer);
+                        recordingTimer = null;
+                    }
+                    
+                    if (mediaStream) {
+                        mediaStream.getTracks().forEach(track => track.stop());
+                        mediaStream = null;
+                    }
 
                     audioBlob = new Blob(audioChunks, { type: 'audio/webm; codecs=opus' });
                     
-                    // 轉換 Blob 為 Base64 (API 呼叫所需格式)
                     blobToBase64(audioBlob).then(base64 => {
                         audioBase64 = base64;
-                        statusMsg.textContent = '✅ 錄音完成！正在準備評分...';
+                        statusMsg.textContent = '✅ 錄音完成,正在準備評分...';
                         startBtn.disabled = false;
                         stopBtn.disabled = true;
-                        apiKeyInput.disabled = false; // 啟用 key 輸入
-                        scriptInput.disabled = false; // 啟用文稿輸入
+                        scriptInput.disabled = false;
                         audioPlayback.src = URL.createObjectURL(audioBlob);
                         audioPlayback.classList.remove('hidden');
                         
-                        // 自動觸發評分流程
                         gradeReading();
                     });
+                };
+
+                mediaRecorder.onerror = (event) => {
+                    console.error('錄音錯誤:', event.error);
+                    releaseMediaResources();
+                    showToast('❌ 錄音發生錯誤,請重試', 'error');
                 };
 
                 mediaRecorder.start();
 
             } catch (err) {
                 console.error('無法存取麥克風:', err);
-                statusMsg.textContent = '❌ 錯誤：無法存取麥克風。請檢查權限。';
+                statusMsg.textContent = '❌ 錯誤:無法存取麥克風。請檢查權限。';
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
-                apiKeyInput.disabled = false;
                 scriptInput.disabled = false;
+                showToast('❌ 無法存取麥克風,請檢查權限', 'error');
+                releaseMediaResources();
             }
         }
 
-        /**
-         * 停止錄音
-         */
+        function updateRecordingTimer(elapsed, remaining) {
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            const maxMinutes = Math.floor(MAX_RECORDING_SECONDS / 60);
+            const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')} / ${maxMinutes}:00`;
+            
+            let colorClass = 'text-green-600';
+            if (remaining < 30) {
+                colorClass = 'text-red-600 font-bold animate-pulse';
+            } else if (remaining < 60) {
+                colorClass = 'text-orange-600 font-semibold';
+            }
+            
+            statusMsg.innerHTML = `🔴 錄音中... <span class="${colorClass}">${timeStr}</span>`;
+        }
+
+        function releaseMediaResources() {
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+            }
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+        }
+
         function stopRecording() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
@@ -539,14 +701,10 @@
             }
         }
 
-        /**
-         * 將 Blob 轉換為 Base64 字串
-         */
         function blobToBase64(blob) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
-                    // 移除 "data:audio/webm;codecs=opus;base64," 的前綴
                     const base64String = reader.result.split(',')[1]; 
                     resolve(base64String);
                 };
@@ -555,17 +713,13 @@
             });
         }
 
-        /**
-         * 呼叫 Gemini API 進行語音評分
-         */
         async function gradeReading() {
             if (!audioBase64) {
-                apiErrorMessage.textContent = '音檔尚未準備好，請重新錄製。';
+                apiErrorMessage.textContent = '音檔尚未準備好,請重新錄製。';
                 apiError.classList.remove('hidden');
                 return;
             }
             
-            const apiKey = getApiKey();
             if (!apiKey) {
                 apiErrorMessage.textContent = '請輸入 API Key 才能呼叫評分服務。';
                 apiError.classList.remove('hidden');
@@ -577,26 +731,63 @@
             scoreDisplay.classList.add('hidden');
             apiError.classList.add('hidden');
             
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent`;
 
             const readingScript = scriptInput.value.trim();
             const systemPrompt = `
                 你是一位專業的英語朗讀流利度與發音專家。
-                你的任務是執行以下步驟：
+                你的任務是執行以下步驟:
                 1. 準確地將提供的音檔轉錄成文字。
                 2. 將轉錄的文字與使用者提供的「朗讀腳本」進行**單字級別對齊 (Word-level Alignment)**。
-                3. 根據正確朗讀的單字數量，給出一個 0 到 100 之間的準確度分數。
-                4. **必須**產生一個名為 "word_alignment" 的陣列，表示對齊後的結果，用於前端彩色標註。
-                   - 對齊後，請將所有單字，包括遺漏的單字（應使用原始腳本中的單字作為 'word' 內容，狀態標記為 'omitted'），以及多餘的單字（狀態標記為 'inserted'），按順序放入這個陣列。
-                   - 狀態必須是以下四種之一: 'correct', 'mispronounced', 'omitted', 'inserted'。
+                3. 根據正確朗讀的單字數量,給出一個 0 到 100 之間的準確度分數。
+                4. **必須**產生一個名為 "word_alignment" 的陣列,表示對齊後的結果。
+                
+                **重要: word_alignment 陣列的生成規則:**
+                - 必須以**原始朗讀腳本**為基準,按照原文順序逐字處理
+                - 對於腳本中的每一個單字,判斷學生的朗讀情況:
+                  * 如果正確發音 → status: "correct"
+                  * 如果發音錯誤 → status: "mispronounced"  
+                  * 如果完全跳過沒讀 → status: "omitted" (這個單字仍然要出現在陣列中,使用原文的單字)
+                - 對於學生多讀的單字 (原文中沒有的):
+                  * 在對應位置插入 → status: "inserted"
+                
+                **範例說明:**
+                原文: "Hello world"
+                學生讀: "Hello beautiful world"
+                
+                應返回:
+                [
+                  {"word": "Hello", "status": "correct"},
+                  {"word": "beautiful", "status": "inserted"},
+                  {"word": "world", "status": "correct"}
+                ]
+                
+                原文: "I like apples and oranges"
+                學生讀: "I like apples"
+                
+                應返回:
+                [
+                  {"word": "I", "status": "correct"},
+                  {"word": "like", "status": "correct"},
+                  {"word": "apples", "status": "correct"},
+                  {"word": "and", "status": "omitted"},
+                  {"word": "oranges", "status": "omitted"}
+                ]
+                
                 5. 以繁體中文提供簡短的總結回饋。
                 
-                你的輸出必須是單一的 JSON 物件，並嚴格遵循提供的 JSON Schema。
+                你的輸出必須是單一的 JSON 物件,並嚴格遵循提供的 JSON Schema。
+                **確保 word_alignment 陣列完整涵蓋原始腳本的所有單字。**
             `;
 
             const userQuery = `
-                請根據以下朗讀腳本和附帶的音檔進行評分：
-                朗讀腳本: "${readingScript}"
+                請根據以下朗讀腳本和附帶的音檔進行評分:
+                
+                【原始朗讀腳本】:
+                "${readingScript}"
+                
+                請務必確保 word_alignment 陣列包含原始腳本中的**每一個單字**,即使學生沒有朗讀也要標記為 'omitted'。
+                對齊時請保持原文的順序和結構。
             `;
 
             const payload = {
@@ -638,21 +829,19 @@
                                 "items": {
                                     "type": "OBJECT",
                                     "properties": {
-                                        "word": { "type": "STRING", "description": "The word to display (either transcribed word or the target word if omitted)." },
+                                        "word": { "type": "STRING", "description": "The word to display." },
                                         "status": { "type": "STRING", "enum": ["correct", "mispronounced", "omitted", "inserted"] }
                                     },
                                     "required": ["word", "status"]
                                 },
-                                "description": "An array representing the word-by-word alignment for colored display."
+                                "description": "Word-by-word alignment for colored display."
                             }
                         },
-                        "required": ["score_percentage", "feedback_summary_chinese", "incorrect_words", "word_alignment"],
-                        "propertyOrdering": ["score_percentage", "feedback_summary_chinese", "incorrect_words", "word_alignment"]
+                        "required": ["score_percentage", "feedback_summary_chinese", "incorrect_words", "word_alignment"]
                     }
                 }
             };
             
-            // 實作指數退避 (Exponential Backoff)
             const MAX_RETRIES = 5;
             let attempt = 0;
 
@@ -660,13 +849,16 @@
                 try {
                     const response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': apiKey
+                        },
                         body: JSON.stringify(payload)
                     });
 
                     if (!response.ok) {
-                        // 處理 HTTP 錯誤
-                        throw new Error(`API response error: ${response.status} ${response.statusText}`);
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(`API 回應錯誤: ${response.status} - ${errorData.error?.message || response.statusText}`);
                     }
 
                     const result = await response.json();
@@ -676,22 +868,22 @@
                         const parsedJson = JSON.parse(jsonText);
                         
                         displayResults(parsedJson);
-                        return; // 成功，結束迴圈
+                        resetIdleTimer();
+                        return;
                     } else {
                         throw new Error("API 回應中缺少候選內容 (candidates)。");
                     }
 
                 } catch (error) {
-                    console.error(`Attempt ${attempt + 1} failed:`, error);
+                    console.error(`第 ${attempt + 1} 次嘗試失敗:`, error);
                     attempt++;
 
                     if (attempt >= MAX_RETRIES) {
-                        apiErrorMessage.textContent = `評分失敗，請檢查文稿或錄音品質。詳細錯誤: ${error.message}`;
+                        apiErrorMessage.textContent = `評分失敗,請檢查網路連線或 API Key 是否正確。錯誤: ${error.message}`;
                         apiError.classList.remove('hidden');
                         break;
                     }
 
-                    // 指數退避等待時間 (1s, 2s, 4s, 8s, ...)
                     const delay = Math.pow(2, attempt) * 1000;
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
@@ -700,62 +892,66 @@
             loadingIndicator.classList.add('hidden');
         }
 
-        /**
-         * 處理並顯示彩色轉錄稿。此處包含斷字 (inline-block + mr-1) 和斷句 (檢查標點後插入 w-full div) 的邏輯。
-         * 新增：每個單字都可點擊，觸發 speakWord 進行發音。
-         * @param {Array<Object>} alignment - word_alignment array from Gemini
-         */
         function renderColoredTranscript(alignment) {
             let htmlContent = '';
             
-            // 定義狀態到 Tailwind 類別的映射
             const statusMap = {
-                'correct': 'text-green-700',
+                'correct': 'text-green-700 font-semibold',
                 'mispronounced': 'text-red-600 font-bold',
-                'omitted': 'text-gray-500 italic underline', // 遺漏的字用灰色底線標註
+                'omitted': 'text-gray-600 font-normal',
                 'inserted': 'text-purple-600 font-bold'
             };
             
-            // 這是新的樣式類別，結合了舊的樣式和新的可點擊樣式
-            // pronounceable-word 提供了 hover 效果和優化的觸控區域
+            const statusLabels = {
+                'correct': '✓',
+                'mispronounced': '✗',
+                'omitted': '⊘',
+                'inserted': '+'
+            };
+            
             const wordBaseClasses = 'inline-block whitespace-normal pronounceable-word';
 
-
-            alignment.forEach(item => {
+            alignment.forEach((item, index) => {
                 const word = item.word || '';
                 const status = item.status || 'correct';
                 const colorClass = statusMap[status] || 'text-gray-900';
+                const label = statusLabels[status] || '';
                 
-                // 檢查是否為句尾標點符號，以便進行斷句優化 (只檢查句末標點，不包含逗號)
                 const isSentenceEnd = ['.', '!', '?', ';'].some(p => word.endsWith(p));
+                const escapedWord = word.replace(/'/g, "\\'");
+                
+                // 為遺漏的字添加底線提示 (不用刪除線)
+                const omittedStyle = status === 'omitted' ? 'bg-gray-200 underline decoration-gray-500 decoration-2 px-1' : '';
+                const insertedStyle = status === 'inserted' ? 'bg-purple-50 px-1' : '';
 
-                // 處理單引號，以便安全地在 onclick 屬性中使用
-                const escapedWord = word.replace(/'/g, "\\'"); 
-
-                // 1. 單字顯示 (實現斷字視覺分離 + 可點擊發音)
                 htmlContent += `
                     <span 
-                        class="${colorClass} ${wordBaseClasses}"
+                        class="${colorClass} ${wordBaseClasses} ${omittedStyle} ${insertedStyle}"
                         onclick="speakWord('${escapedWord}')"
-                        title="點擊聽取發音: ${word}"
+                        title="點擊聽取發音: ${word} [${status}]"
                     >
                         ${word}
                     </span>
                 `;
                 
-                // 2. 斷句優化 (實現段落/句子換行)
                 if (isSentenceEnd) {
                     htmlContent += `<div class="w-full mb-3"></div>`; 
                 }
             });
 
             coloredTranscript.innerHTML = htmlContent;
+            
+            // 顯示統計資訊
+            const stats = {
+                correct: alignment.filter(w => w.status === 'correct').length,
+                mispronounced: alignment.filter(w => w.status === 'mispronounced').length,
+                omitted: alignment.filter(w => w.status === 'omitted').length,
+                inserted: alignment.filter(w => w.status === 'inserted').length
+            };
+            
+            console.log('單字對齊統計:', stats);
         }
 
-
-        /**
-         * 下載錄製的音檔 (.webm)
-         */
         function downloadAudio() {
             if (audioBlob) {
                 const url = URL.createObjectURL(audioBlob);
@@ -768,16 +964,12 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                statusMsg.textContent = '✅ 音檔已下載。';
+                showToast('✅ 音檔已下載', 'success');
             } else {
-                apiErrorMessage.textContent = "沒有可下載的音檔。請先錄音。";
-                apiError.classList.remove('hidden');
+                showToast('❌ 沒有可下載的音檔', 'error');
             }
         }
 
-        /**
-         * 截圖並下載評分報告
-         */
         function captureScreenshot() {
             const targetElement = document.getElementById('resultsSection');
             
@@ -803,23 +995,18 @@
                 a.click();
                 document.body.removeChild(a);
                 
-                statusMsg.textContent = '✅ 評分報告截圖已下載。';
+                showToast('✅ 評分報告截圖已下載', 'success');
             }).catch(error => {
                 buttonsToHide.forEach(btn => btn.style.visibility = 'visible');
                 console.error('截圖失敗:', error);
-                apiErrorMessage.textContent = '截圖功能失敗，請檢查瀏覽器支援。';
-                apiError.classList.remove('hidden');
+                showToast('❌ 截圖功能失敗', 'error');
             });
         }
 
-        /**
-         * 顯示評分結果到 UI
-         */
         function displayResults(data) {
             loadingIndicator.classList.add('hidden');
             scoreDisplay.classList.remove('hidden');
 
-            // 1. 報告生成時間
             const now = new Date();
             const formattedDateTime = now.toLocaleDateString('zh-TW', { 
                 year: 'numeric', month: 'long', day: 'numeric', 
@@ -828,7 +1015,6 @@
             });
             assessmentDateTime.textContent = formattedDateTime;
 
-            // 2. 文稿標題 (取第一行)
             const readingScript = scriptInput.value.trim();
             let scriptTitle = readingScript.split('\n')[0].trim();
             if (scriptTitle.length > 50) {
@@ -836,11 +1022,9 @@
             }
             scriptTitleDisplay.textContent = scriptTitle || '無標題文稿';
 
-            // 3. 核心評分數據
             scorePercentage.textContent = `${data.score_percentage}%`;
             feedbackSummary.textContent = data.feedback_summary_chinese || 'AI 未提供總結回饋。';
             
-            // 4. 彩色轉錄稿
             if (data.word_alignment && data.word_alignment.length > 0) {
                 renderColoredTranscript(data.word_alignment);
             } else {
@@ -850,17 +1034,131 @@
             statusMsg.textContent = '評分報告已更新。';
         }
 
-        // --- 初始化 ---
+        function initIdleMonitoring() {
+            MONITORED_EVENTS.forEach(event => {
+                document.addEventListener(event, resetIdleTimer, { passive: true });
+            });
+            resetIdleTimer();
+        }
+
+        function resetIdleTimer() {
+            lastActivityTime = Date.now();
+            
+            if (warningTimer) clearTimeout(warningTimer);
+            if (autoCleanupTimer) clearTimeout(autoCleanupTimer);
+            
+            if (!apiKey) return;
+            
+            warningTimer = setTimeout(() => {
+                showIdleWarning();
+            }, IDLE_WARNING_TIME);
+            
+            autoCleanupTimer = setTimeout(() => {
+                autoCleanup();
+            }, IDLE_CLEANUP_TIME);
+        }
+
+        function showIdleWarning() {
+            const dialog = document.createElement('div');
+            dialog.id = 'idleWarningDialog';
+            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            dialog.innerHTML = `
+                <div class="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl">
+                    <h3 class="text-xl font-bold text-orange-600 mb-3">⚠️ 閒置提醒</h3>
+                    <p class="text-gray-700 mb-4">
+                        您已經 9 分鐘沒有操作,系統將在 <strong>1 分鐘後</strong>自動清除您的 API Key 與資料。
+                    </p>
+                    <div class="flex space-x-3">
+                        <button onclick="continueSession()" 
+                                class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">
+                            我還在使用
+                        </button>
+                        <button onclick="manualCleanup()" 
+                                class="flex-1 bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-bold hover:bg-gray-400">
+                            清除並離開
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        function continueSession() {
+            const dialog = document.getElementById('idleWarningDialog');
+            if (dialog) dialog.remove();
+            resetIdleTimer();
+            showToast('✅ 已重置計時器', 'success');
+        }
+
+        function autoCleanup() {
+            cleanup();
+            showToast('⏰ 已自動清除資料 (閒置過久)', 'warning', 5000);
+        }
+
+        function manualCleanup() {
+            const confirmed = confirm('確定要清除所有資料嗎?\n\n這將清除:\n• API Key\n• 錄音檔案\n• 文稿內容\n• 評分結果');
+            if (confirmed) {
+                cleanup();
+                showToast('✅ 已清除所有資料', 'success');
+            }
+        }
+
+        function cleanup() {
+            apiKey = '';
+            audioBase64 = '';
+            audioBlob = null;
+            audioChunks = [];
+            
+            releaseMediaResources();
+            
+            apiKeyInput.value = '';
+            manualApiKeyInput.value = '';
+            scriptInput.value = '';
+            scriptInput.disabled = false;
+            audioPlayback.src = '';
+            audioPlayback.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            apiError.classList.add('hidden');
+            
+            if (warningTimer) clearTimeout(warningTimer);
+            if (autoCleanupTimer) clearTimeout(autoCleanupTimer);
+            
+            const dialog = document.getElementById('idleWarningDialog');
+            if (dialog) dialog.remove();
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            updateApiKeyUI();
+            cancelManualInput();
+            statusMsg.textContent = '已清除所有資料,可以安全離開。';
+        }
+
         window.onload = function() {
-            // 呼叫 Firebase 初始化函式，它會處理登入並啟用 startBtn
-            initializeFirebase(); 
+            initializeFirebase();
+            initIdleMonitoring();
+            
+            window.addEventListener('beforeunload', (e) => {
+                if (apiKey) {
+                    e.preventDefault();
+                    e.returnValue = '您的 API Key 尚未清除,確定要離開嗎?';
+                }
+            });
+            
             window.toggleInstructions = toggleInstructions;
             window.updateScriptFontSize = updateScriptFontSize;
+            window.pasteApiKey = pasteApiKey;
+            window.showManualInput = showManualInput;
+            window.cancelManualInput = cancelManualInput;
+            window.confirmManualKey = confirmManualKey;
             window.clearApiKey = clearApiKey;
+            window.pasteScript = pasteScript;
             window.startRecording = startRecording;
             window.stopRecording = stopRecording;
             window.downloadAudio = downloadAudio;
             window.captureScreenshot = captureScreenshot;
+            window.continueSession = continueSession;
+            window.manualCleanup = manualCleanup;
         };
 
     </script>
