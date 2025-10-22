@@ -112,6 +112,12 @@
                         <input type="password" id="manualApiKeyInput" 
                                class="w-full p-2 text-sm border-2 border-yellow-200 rounded-lg focus:ring-yellow-500 focus:border-yellow-500" 
                                placeholder="請輸入 Gemini API Key">
+                        <div class="flex items-center space-x-2 text-xs">
+                            <input type="checkbox" id="rememberKeyCheckbox" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                            <label for="rememberKeyCheckbox" class="text-gray-700 cursor-pointer">
+                                記住 API Key (不自動清除,適合個人設備)
+                            </label>
+                        </div>
                         <div class="flex space-x-2">
                             <button onclick="confirmManualKey()"
                                     class="flex-1 px-3 py-1.5 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700">
@@ -129,7 +135,7 @@
                             <div class="flex-1">
                                 <span class="text-green-700 text-sm font-bold">✅ 已設定</span>
                                 <span id="maskedKey" class="text-gray-500 text-xs ml-2"></span>
-                                <p class="text-xs text-orange-600 mt-0.5">⏱️ 閒置 10 分鐘自動清除</p>
+                                <p id="autoCleanupStatus" class="text-xs text-orange-600 mt-0.5">⏱️ 閒置 10 分鐘自動清除</p>
                             </div>
                             <button onclick="clearApiKey()"
                                     class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg font-bold hover:bg-red-600">
@@ -286,6 +292,7 @@
         let mediaStream = null;
         
         let apiKey = '';
+        let rememberApiKey = false;
         let lastActivityTime = Date.now();
         let warningTimer = null;
         let autoCleanupTimer = null;
@@ -294,9 +301,6 @@
         let auth;
         let currentUserId = 'anonymous-session';
         
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const manualApiKeyInput = document.getElementById('manualApiKeyInput');
-        const keyError = document.getElementById('keyError');
         const scriptInput = document.getElementById('readingScript');
         const startBtn = document.getElementById('startRecording');
         const stopBtn = document.getElementById('stopRecording');
@@ -317,6 +321,8 @@
         const userEmail = document.getElementById('userEmail');
         const coloredTranscript = document.getElementById('coloredTranscript');
         const globalCleanupBtn = document.getElementById('globalCleanupBtn');
+        const rememberKeyCheckbox = document.getElementById('rememberKeyCheckbox');
+        const autoCleanupStatus = document.getElementById('autoCleanupStatus');
 
         function showToast(message, type = 'info', duration = 3000) {
             const colors = {
@@ -365,9 +371,10 @@
                 }
                 
                 apiKey = trimmed;
+                rememberApiKey = false; // 快速貼上預設不記住
                 updateApiKeyUI();
                 resetIdleTimer();
-                showToast('✅ API Key 已設定', 'success');
+                showToast('✅ API Key 已設定 (閒置 10 分鐘自動清除)', 'success');
                 
             } catch (err) {
                 console.error('無法讀取剪貼簿:', err);
@@ -388,6 +395,7 @@
             document.getElementById('pasteKeyButton').classList.remove('hidden');
             document.getElementById('manualKeyButton').classList.remove('hidden');
             manualApiKeyInput.value = '';
+            rememberKeyCheckbox.checked = false;
         }
 
         function confirmManualKey() {
@@ -399,10 +407,25 @@
             }
             
             apiKey = inputKey;
+            rememberApiKey = rememberKeyCheckbox.checked;
+            
+            // 如果勾選記住,儲存到 localStorage
+            if (rememberApiKey) {
+                try {
+                    localStorage.setItem('saved_api_key', inputKey);
+                    localStorage.setItem('remember_api_key', 'true');
+                    showToast('✅ API Key 已設定並儲存', 'success');
+                } catch (e) {
+                    console.error('無法儲存到 localStorage:', e);
+                    showToast('⚠️ 無法儲存 Key,但仍可使用', 'warning');
+                }
+            } else {
+                showToast('✅ API Key 已設定 (閒置 10 分鐘自動清除)', 'success');
+            }
+            
             updateApiKeyUI();
             resetIdleTimer();
             cancelManualInput();
-            showToast('✅ API Key 已設定', 'success');
         }
 
         function validateApiKey(key) {
@@ -414,19 +437,51 @@
             const manualBtn = document.getElementById('manualKeyButton');
             const keySetDisplay = document.getElementById('keySetDisplay');
             const maskedKey = document.getElementById('maskedKey');
+            const manualInputArea = document.getElementById('manualInputArea');
             
-            if (!apiKey) {
+            // 強制檢查並更新狀態
+            console.log('updateApiKeyUI called, apiKey:', apiKey ? 'exists' : 'empty', 'rememberApiKey:', rememberApiKey);
+            
+            if (!apiKey || apiKey === '') {
+                // 顯示初始按鈕
                 pasteBtn.classList.remove('hidden');
                 manualBtn.classList.remove('hidden');
+                
+                // 隱藏已設定狀態和手動輸入區
                 keySetDisplay.classList.add('hidden');
+                manualInputArea.classList.add('hidden');
+                
+                // 隱藏全域清除按鈕
                 globalCleanupBtn.classList.add('hidden');
+                
+                console.log('UI updated to initial state');
             } else {
+                // 隱藏初始按鈕和手動輸入區
                 pasteBtn.classList.add('hidden');
                 manualBtn.classList.add('hidden');
+                manualInputArea.classList.add('hidden');
+                
+                // 顯示已設定狀態
                 keySetDisplay.classList.remove('hidden');
                 maskedKey.textContent = `(${apiKey.slice(0, 4)}••••••••${apiKey.slice(-4)})`;
+                
+                // 更新自動清除狀態顯示
+                if (rememberApiKey) {
+                    autoCleanupStatus.textContent = '🔒 已永久儲存 (不會自動清除)';
+                    autoCleanupStatus.className = 'text-xs text-blue-600 mt-0.5';
+                } else {
+                    autoCleanupStatus.textContent = '⏱️ 閒置 10 分鐘自動清除';
+                    autoCleanupStatus.className = 'text-xs text-orange-600 mt-0.5';
+                }
+                
+                // 顯示全域清除按鈕
                 globalCleanupBtn.classList.remove('hidden');
+                
+                console.log('UI updated to active state');
             }
+            
+            // 強制瀏覽器重繪
+            void document.body.offsetHeight;
         }
 
         async function pasteScript() {
@@ -450,15 +505,44 @@
         }
 
         function clearApiKey() {
-            const confirmed = confirm('確定要清除 API Key 嗎?');
+            const message = rememberApiKey 
+                ? '確定要清除已儲存的 API Key 嗎?\n\n這將同時清除永久儲存的設定。' 
+                : '確定要清除 API Key 嗎?';
+            
+            const confirmed = confirm(message);
+            
             if (confirmed) {
+                // 清除變數
                 apiKey = '';
-                apiKeyInput.value = '';
-                manualApiKeyInput.value = '';
+                rememberApiKey = false;
+                
+                // 清除輸入框 (只清除存在的元素)
+                const manualInput = document.getElementById('manualApiKeyInput');
+                const rememberCheckbox = document.getElementById('rememberKeyCheckbox');
+                
+                if (manualInput) manualInput.value = '';
+                if (rememberCheckbox) rememberCheckbox.checked = false;
+                
+                // 清除 localStorage
+                try {
+                    localStorage.removeItem('saved_api_key');
+                    localStorage.removeItem('remember_api_key');
+                } catch (e) {
+                    console.error('無法清除 localStorage:', e);
+                }
+                
+                // 重置計時器
+                if (warningTimer) clearTimeout(warningTimer);
+                if (autoCleanupTimer) clearTimeout(autoCleanupTimer);
+                
+                // 強制更新 UI
                 updateApiKeyUI();
-                resetIdleTimer();
+                
+                // 顯示提示
                 showToast('✅ API Key 已清除', 'success');
                 statusMsg.textContent = 'API Key 已清除。現在可以安全地離開公用裝置。';
+                
+                console.log('clearApiKey completed, apiKey:', apiKey);
             }
         }
 
@@ -1053,7 +1137,8 @@
             if (warningTimer) clearTimeout(warningTimer);
             if (autoCleanupTimer) clearTimeout(autoCleanupTimer);
             
-            if (!apiKey) return;
+            // 如果已勾選「記住 API Key」,則不啟動自動清除計時器
+            if (!apiKey || rememberApiKey) return;
             
             warningTimer = setTimeout(() => {
                 showIdleWarning();
@@ -1102,7 +1187,11 @@
         }
 
         function manualCleanup() {
-            const confirmed = confirm('確定要清除所有資料嗎?\n\n這將清除:\n• API Key\n• 錄音檔案\n• 文稿內容\n• 評分結果');
+            const message = rememberApiKey 
+                ? '確定要清除所有資料嗎?\n\n這將清除:\n• 已儲存的 API Key\n• 錄音檔案\n• 文稿內容\n• 評分結果'
+                : '確定要清除所有資料嗎?\n\n這將清除:\n• API Key\n• 錄音檔案\n• 文稿內容\n• 評分結果';
+            
+            const confirmed = confirm(message);
             if (confirmed) {
                 cleanup();
                 showToast('✅ 已清除所有資料', 'success');
@@ -1110,42 +1199,88 @@
         }
 
         function cleanup() {
+            // 先清除 API Key 變數和儲存
             apiKey = '';
+            rememberApiKey = false;
+            
+            // 清除 localStorage
+            try {
+                localStorage.removeItem('saved_api_key');
+                localStorage.removeItem('remember_api_key');
+            } catch (e) {
+                console.error('無法清除 localStorage:', e);
+            }
+            
+            // 清除音檔相關
             audioBase64 = '';
             audioBlob = null;
             audioChunks = [];
             
             releaseMediaResources();
             
-            apiKeyInput.value = '';
-            manualApiKeyInput.value = '';
-            scriptInput.value = '';
-            scriptInput.disabled = false;
-            audioPlayback.src = '';
-            audioPlayback.classList.add('hidden');
+            // 清除所有輸入框 (只清除存在的元素)
+            const manualInput = document.getElementById('manualApiKeyInput');
+            const rememberCheckbox = document.getElementById('rememberKeyCheckbox');
+            const scriptInputElem = document.getElementById('readingScript');
+            const audioElem = document.getElementById('audioPlayback');
+            
+            if (manualInput) manualInput.value = '';
+            if (rememberCheckbox) rememberCheckbox.checked = false;
+            if (scriptInputElem) {
+                scriptInputElem.value = '';
+                scriptInputElem.disabled = false;
+            }
+            if (audioElem) {
+                audioElem.src = '';
+                audioElem.classList.add('hidden');
+            }
+            
             resultsSection.classList.add('hidden');
             apiError.classList.add('hidden');
             
+            // 清除計時器
             if (warningTimer) clearTimeout(warningTimer);
             if (autoCleanupTimer) clearTimeout(autoCleanupTimer);
             
+            // 移除警告對話框
             const dialog = document.getElementById('idleWarningDialog');
             if (dialog) dialog.remove();
             
+            // 重置按鈕狀態
             startBtn.disabled = false;
             stopBtn.disabled = true;
             
+            // 更新 UI 顯示
             updateApiKeyUI();
             cancelManualInput();
+            
             statusMsg.textContent = '已清除所有資料,可以安全離開。';
+            
+            console.log('cleanup completed, apiKey:', apiKey);
         }
 
         window.onload = function() {
+            // 嘗試從 localStorage 恢復 API Key
+            try {
+                const savedKey = localStorage.getItem('saved_api_key');
+                const rememberFlag = localStorage.getItem('remember_api_key');
+                
+                if (savedKey && rememberFlag === 'true' && validateApiKey(savedKey)) {
+                    apiKey = savedKey;
+                    rememberApiKey = true;
+                    updateApiKeyUI();
+                    showToast('✅ 已自動載入儲存的 API Key', 'success', 2000);
+                }
+            } catch (e) {
+                console.error('無法讀取 localStorage:', e);
+            }
+            
             initializeFirebase();
             initIdleMonitoring();
             
             window.addEventListener('beforeunload', (e) => {
-                if (apiKey) {
+                // 如果有未儲存的 API Key 才提醒
+                if (apiKey && !rememberApiKey) {
                     e.preventDefault();
                     e.returnValue = '您的 API Key 尚未清除,確定要離開嗎?';
                 }
