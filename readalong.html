@@ -42,15 +42,32 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
         
         window.initializeApp = initializeApp;
         window.getAuth = getAuth;
         window.signInAnonymously = signInAnonymously;
         window.signInWithCustomToken = signInWithCustomToken;
+        window.signInWithPopup = signInWithPopup;
+        window.GoogleAuthProvider = GoogleAuthProvider;
+        window.signOut = signOut;
         window.onAuthStateChanged = onAuthStateChanged;
         window.getFirestore = getFirestore; 
+    </script>
+
+    <!-- Firebase Configuration -->
+    <script>
+        // Your web app's Firebase configuration
+        const __firebase_config = JSON.stringify({
+            apiKey: "AIzaSyCFrr_CWrpB41DaPR_YKHlIdXjWSGw6ibI",
+            authDomain: "geminioralpractice.firebaseapp.com",
+            projectId: "geminioralpractice",
+            storageBucket: "geminioralpractice.firebasestorage.app",
+            messagingSenderId: "313153139029",
+            appId: "1:313153139029:web:5e5f9e92a6a7cc292b7fdc",
+            measurementId: "G-77K2MG9PSL"
+        });
     </script>
 
     <div id="app" class="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-4 sm:p-6 border border-gray-200">
@@ -68,6 +85,56 @@
                 <svg id="toggleIcon" class="w-4 h-4 transform rotate-0 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
         </header>
+
+        <!-- 選擇性 Google 登入區塊 -->
+        <section class="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-800 flex items-center">
+                        👤 個人化功能 
+                        <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">選用</span>
+                    </h3>
+                    <p class="text-xs text-gray-600 mt-1">登入後可儲存練習記錄、查看歷史成績，報告上會顯示您的姓名</p>
+                </div>
+                
+                <!-- 未登入狀態 -->
+                <div id="notLoggedInSection" class="flex items-center space-x-2">
+                    <button onclick="googleSignIn()" 
+                            class="px-4 py-2 bg-white border-2 border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition flex items-center space-x-2 shadow-sm">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span class="font-semibold">使用 Google 登入</span>
+                    </button>
+                </div>
+                
+                <!-- 已登入狀態 -->
+                <div id="loggedInSection" class="hidden">
+                    <div class="flex items-center space-x-3 p-2 bg-white rounded-lg border border-green-300 shadow-sm">
+                        <img id="userPhoto" src="" alt="User" class="w-10 h-10 rounded-full border-2 border-green-400">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-gray-800 text-sm truncate" id="userName">載入中...</p>
+                            <p class="text-xs text-gray-600 truncate" id="userEmail">載入中...</p>
+                        </div>
+                        <button onclick="googleSignOut()" 
+                                class="px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition whitespace-nowrap">
+                            登出
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 提示訊息 -->
+            <div class="mt-2 text-xs text-gray-500 flex items-center">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span>不登入也能正常使用所有功能</span>
+            </div>
+        </section>
 
         <!-- 使用說明摺疊內容 -->
         <section class="mb-4">
@@ -199,6 +266,17 @@
             
             <div id="statusMessage" class="text-sm text-gray-700 mb-2">準備就緒,請點擊「開始」錄音。</div>
             <audio id="audioPlayback" controls class="w-full hidden h-8"></audio>
+            
+            <!-- 下載錄音按鈕（錄音完成後顯示，即使評分失敗也可使用）-->
+            <button id="downloadRecordingButton" 
+                    onclick="downloadAudio()" 
+                    class="hidden w-full mt-3 px-4 py-3 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition flex items-center justify-center shadow-md"
+                    title="下載您的錄音檔案（即使評分失敗也可使用）">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                </svg>
+                💾 下載錄音檔 (.webm)
+            </button>
         </section>
 
         <!-- 步驟 3: 評分結果 -->
@@ -208,7 +286,6 @@
             <div class="mb-5 space-y-1 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
                 <p><span class="font-semibold text-gray-800">報告生成時間:</span> <span id="assessmentDateTime">--</span></p>
                 <p><span class="font-semibold text-gray-800">使用者名稱:</span> <span id="userDisplayName" class="break-all text-xs font-mono text-blue-600">載入中...</span></p>
-                <p><span class="font-semibold text-gray-800">使用者 Email:</span> <span id="userEmail" class="break-all text-xs font-mono text-blue-600">載入中...</span></p>
                 <p><span class="font-semibold text-gray-800">系統 ID (Session):</span> <span id="currentUserId" class="break-all text-xs font-mono text-pink-600">載入中...</span></p>
                 <p><span class="font-semibold text-gray-800">文稿標題:</span> <span id="scriptTitleDisplay" class="italic">--</span></p>
             </div>
@@ -224,9 +301,31 @@
                     <div id="scorePercentage" class="text-5xl font-extrabold text-blue-600">--</div>
                 </div>
 
-                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">總結回饋 (中文)</h3>
-                    <p id="feedbackSummary" class="text-gray-700 leading-relaxed">--</p>
+                <!-- 完成度統計 -->
+                <div class="mb-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center">
+                        <span class="text-2xl mr-2">📊</span>
+                        完成度統計
+                    </h3>
+                    <div id="completionStats" class="text-gray-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <span>完成度：</span>
+                            <span id="completionPercentage" class="text-2xl font-bold text-green-600">--</span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <span id="completionDetail">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                        <span class="text-2xl mr-2">💬</span>
+                        AI 教練回饋 (中文)
+                    </h3>
+                    <div id="feedbackSummary" class="text-gray-700 leading-relaxed whitespace-pre-line space-y-3">
+                        <!-- AI 回饋將顯示在這裡,保留換行格式 -->
+                    </div>
                 </div>
 
                 <div class="mb-8 p-4 bg-white border rounded-lg shadow-inner">
@@ -261,6 +360,24 @@
         <div id="apiError" class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg mt-8 hidden" role="alert">
             <p class="font-bold">發生錯誤</p>
             <p id="apiErrorMessage"></p>
+            
+            <!-- Gemini 備用方案 -->
+            <div class="mt-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                <p class="text-sm text-gray-700 mb-3">
+                    <strong>💡 備用方案：</strong>您可以使用 Google Gemini 手動評分（免 API Key）
+                </p>
+                <button id="openGeminiButton" 
+                        onclick="openGeminiUI()" 
+                        class="w-full px-4 py-3 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition flex items-center justify-center shadow-md">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                    🌟 使用 Gemini 評分
+                </button>
+                <p class="text-xs text-gray-500 mt-2 text-center">
+                    ⚠️ 需手動上傳錄音檔到 Gemini
+                </p>
+            </div>
         </div>
 
     </div>
@@ -276,7 +393,7 @@
     </button>
 
     <script>
-        const API_MODEL = "gemini-2.0-flash-exp";
+        const API_MODEL = "gemini-2.5-flash";
         const MAX_RECORDING_SECONDS = 180;
         const WARNING_AT_SECONDS = 150;
         const IDLE_WARNING_TIME = 9 * 60 * 1000;
@@ -603,51 +720,175 @@
 
         window.speakWord = speakWord;
 
+        // ============= Google 登入功能 =============
+        async function googleSignIn() {
+            if (!auth) {
+                showToast('❌ Firebase 尚未初始化', 'error');
+                return;
+            }
+            
+            try {
+                const provider = new window.GoogleAuthProvider();
+                const result = await window.signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                console.log('Google 登入成功:', {
+                    name: user.displayName,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    uid: user.uid
+                });
+                
+                showToast('✅ 登入成功！歡迎 ' + user.displayName, 'success');
+            } catch (error) {
+                console.error('Google 登入失敗:', error);
+                if (error.code === 'auth/popup-closed-by-user') {
+                    showToast('ℹ️ 登入視窗已關閉', 'info');
+                } else {
+                    showToast('❌ 登入失敗: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function googleSignOut() {
+            if (!auth) {
+                return;
+            }
+            
+            try {
+                await window.signOut(auth);
+                
+                // 登出後重新匿名登入
+                await window.signInAnonymously(auth);
+                
+                showToast('✅ 已登出,切換為匿名模式', 'success');
+            } catch (error) {
+                console.error('登出失敗:', error);
+                showToast('❌ 登出失敗: ' + error.message, 'error');
+            }
+        }
+
+        function updateGoogleLoginUI(user) {
+            const notLoggedInSection = document.getElementById('notLoggedInSection');
+            const loggedInSection = document.getElementById('loggedInSection');
+            const userPhoto = document.getElementById('userPhoto');
+            const userName = document.getElementById('userName');
+            const userEmail = document.getElementById('userEmail');
+            
+            if (user && !user.isAnonymous) {
+                // 已用 Google 登入
+                notLoggedInSection.classList.add('hidden');
+                loggedInSection.classList.remove('hidden');
+                
+                userName.textContent = user.displayName || '使用者';
+                userEmail.textContent = user.email || '';
+                userPhoto.src = user.photoURL || 'https://via.placeholder.com/50';
+            } else {
+                // 未登入或匿名登入
+                notLoggedInSection.classList.remove('hidden');
+                loggedInSection.classList.add('hidden');
+            }
+        }
+
+        window.googleSignIn = googleSignIn;
+        window.googleSignOut = googleSignOut;
+
         async function initializeFirebase() {
             try {
-                const firebaseConfig = typeof __firebase_config !== 'undefined' 
-                    ? JSON.parse(__firebase_config) 
-                    : null;
+                // 1. 嘗試從全域變數讀取 Firebase 配置
+                let firebaseConfig = null;
                 
-                if (!firebaseConfig) {
-                    console.warn("Firebase config not found. Running in standalone mode.");
-                    userDisplayName.textContent = '匿名使用者 (無認證)';
-                    userEmail.textContent = '無 Email 資訊';
-                    currentUserId = `anon-${Date.now()}-${Math.floor(Math.random() * 999)}`;
+                if (typeof __firebase_config !== 'undefined') {
+                    try {
+                        firebaseConfig = JSON.parse(__firebase_config);
+                        console.log('Firebase config loaded from global variable');
+                    } catch (e) {
+                        console.error('Failed to parse __firebase_config:', e);
+                    }
+                }
+                
+                // 2. 如果沒有配置,使用單機模式
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    console.warn("Firebase config not found or invalid. Running in standalone mode.");
+                    console.info("To enable Firebase authentication:");
+                    console.info("1. Go to Firebase Console > Project Settings");
+                    console.info("2. Copy your config and paste it in the HTML file");
+                    
+                    userDisplayName.textContent = '訪客模式';
+                    userEmail.textContent = '未啟用 Firebase 認證';
+                    currentUserId = `guest-${Date.now()}-${Math.floor(Math.random() * 999)}`;
                     currentUserIdDisplay.textContent = currentUserId;
                     startBtn.disabled = false;
                     return;
                 }
 
+                // 3. 初始化 Firebase
+                console.log('Initializing Firebase with project:', firebaseConfig.projectId);
                 const app = window.initializeApp(firebaseConfig);
                 auth = window.getAuth(app); 
                 
+                // 4. 處理認證 - 優先使用 Custom Token,否則匿名登入
                 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 
                 if (initialAuthToken) {
+                    console.log('Signing in with custom token');
                     await window.signInWithCustomToken(auth, initialAuthToken);
                 } else {
+                    console.log('Signing in anonymously');
                     await window.signInAnonymously(auth);
                 }
 
+                // 5. 監聽認證狀態變化
                 window.onAuthStateChanged(auth, (user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        userDisplayName.textContent = user.displayName || '未命名使用者';
-                        userEmail.textContent = user.email || '無 Email 資訊';
+                        
+                        // 更新 Google 登入 UI
+                        updateGoogleLoginUI(user);
+                        
+                        // 顯示使用者資訊
+                        const displayName = user.displayName || user.email || '匿名使用者';
+                        const email = user.email || (user.isAnonymous ? '匿名登入' : '無 Email');
+                        
+                        userDisplayName.textContent = displayName;
+                        userEmail.textContent = email;
                         currentUserIdDisplay.textContent = user.uid;
+                        
+                        console.log('User authenticated:', {
+                            uid: user.uid,
+                            displayName: displayName,
+                            email: email,
+                            isAnonymous: user.isAnonymous
+                        });
                     } else {
-                        currentUserId = 'anonymous-session';
-                        userDisplayName.textContent = '匿名使用者';
-                        userEmail.textContent = '無 Email 資訊';
-                        currentUserIdDisplay.textContent = '未登入 (使用匿名 ID)';
+                        currentUserId = 'not-authenticated';
+                        userDisplayName.textContent = '未登入';
+                        userEmail.textContent = '無';
+                        currentUserIdDisplay.textContent = '未認證';
+                        
+                        // 更新 Google 登入 UI
+                        updateGoogleLoginUI(null);
                     }
+                    
+                    // 認證完成後啟用錄音按鈕
                     startBtn.disabled = false;
                 });
 
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                showToast('⚠️ Firebase 初始化失敗,部分功能可能受限', 'warning');
+                console.error("Error details:", {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                
+                // 發生錯誤時使用訪客模式
+                userDisplayName.textContent = '訪客模式 (Firebase 錯誤)';
+                userEmail.textContent = error.message;
+                currentUserId = `error-${Date.now()}`;
+                currentUserIdDisplay.textContent = currentUserId;
+                
+                showToast('⚠️ Firebase 初始化失敗,使用訪客模式', 'warning');
                 startBtn.disabled = false;
             }
         }
@@ -726,6 +967,12 @@
                         scriptInput.disabled = false;
                         audioPlayback.src = URL.createObjectURL(audioBlob);
                         audioPlayback.classList.remove('hidden');
+                        
+                        // 顯示下載錄音按鈕（即使評分失敗也可使用）
+                        const downloadRecordingButton = document.getElementById('downloadRecordingButton');
+                        if (downloadRecordingButton) {
+                            downloadRecordingButton.classList.remove('hidden');
+                        }
                         
                         gradeReading();
                     });
@@ -854,6 +1101,9 @@
                 
                 4. **給予分數**:
                    - 準確度分數 (0-100): 基於正確發音的單字比例
+                   - 完成度百分比: (實際唸出的字數 / 原文總字數) × 100%
+                     * 實際唸出 = correct + mispronounced 的字數
+                     * 原文總字數 = word_alignment 陣列的長度
                    
                 5. **產生 word_alignment 陣列**:
                    - 必須以原始腳本為基準,按順序標記每個單字的狀態
@@ -948,6 +1198,10 @@
                                 "type": "INTEGER", 
                                 "description": "Overall accuracy score out of 100." 
                             },
+                            "completion_percentage": {
+                                "type": "INTEGER",
+                                "description": "Completion percentage: (words actually read / total words) × 100. Words actually read = correct + mispronounced."
+                            },
                             "feedback_summary_chinese": { 
                                 "type": "STRING", 
                                 "description": "A brief, encouraging summary of performance in Traditional Chinese." 
@@ -1025,7 +1279,64 @@
             loadingIndicator.classList.add('hidden');
         }
 
-        function renderColoredTranscript(alignment) {
+        // 驗證並補齊 word_alignment，確保所有原文單字都有對應
+        function verifyAndCompleteAlignment(alignment, originalScript) {
+            // 提取原文中的所有單字（保留標點符號）
+            const originalWords = originalScript
+                .trim()
+                .split(/\s+/)
+                .filter(w => w.length > 0);
+            
+            console.log('原文單字數:', originalWords.length);
+            console.log('API 回傳單字數:', alignment.length);
+            
+            // 如果 API 回傳的單字數量和原文相同，直接返回
+            if (alignment.length === originalWords.length) {
+                console.log('✓ 單字數量正確');
+                return alignment;
+            }
+            
+            // 如果數量不對，進行補齊
+            console.warn('⚠ 單字數量不符，進行補齊...');
+            
+            // 建立完整的 alignment
+            const completeAlignment = [];
+            const alignmentWords = alignment.map(a => a.word.toLowerCase().replace(/[.,!?;]/g, ''));
+            
+            originalWords.forEach((originalWord, index) => {
+                const cleanWord = originalWord.toLowerCase().replace(/[.,!?;]/g, '');
+                
+                // 尋找這個字在 API 回傳的陣列中
+                const found = alignment.find(a => {
+                    const cleanAlignWord = a.word.toLowerCase().replace(/[.,!?;]/g, '');
+                    return cleanAlignWord === cleanWord && !a._used;
+                });
+                
+                if (found) {
+                    // 找到了，標記為已使用
+                    found._used = true;
+                    completeAlignment.push({
+                        word: originalWord,
+                        status: found.status
+                    });
+                } else {
+                    // 沒找到，標記為 omitted
+                    console.log(`補齊漏掉的字: ${originalWord}`);
+                    completeAlignment.push({
+                        word: originalWord,
+                        status: 'omitted'
+                    });
+                }
+            });
+            
+            console.log('✓ 補齊完成，最終單字數:', completeAlignment.length);
+            return completeAlignment;
+        }
+
+        function renderColoredTranscript(alignment, apiCompletionPercentage = null) {
+            const coloredTranscript = document.getElementById('coloredTranscript');
+            if (!coloredTranscript) return;
+            
             let htmlContent = '';
             
             const statusMap = {
@@ -1044,31 +1355,46 @@
             
             const wordBaseClasses = 'inline-block whitespace-normal pronounceable-word';
 
-            alignment.forEach((item, index) => {
-                const word = item.word || '';
-                const status = item.status || 'correct';
-                const colorClass = statusMap[status] || 'text-gray-900';
-                const label = statusLabels[status] || '';
+            // 取得原始文稿，按行分割
+            const originalScript = scriptInput.value.trim();
+            const originalLines = originalScript.split('\n').map(line => line.trim()).filter(line => line);
+            
+            // 將 alignment 按原文的行來分組
+            let currentWordIndex = 0;
+            
+            originalLines.forEach((line, lineIndex) => {
+                // 計算這一行有多少個字
+                const lineWords = line.split(/\s+/).filter(w => w);
+                const lineWordCount = lineWords.length;
                 
-                const isSentenceEnd = ['.', '!', '?', ';'].some(p => word.endsWith(p));
-                const escapedWord = word.replace(/'/g, "\\'");
+                // 如果不是第一行，先換行
+                if (lineIndex > 0) {
+                    htmlContent += `<div class="w-full mb-3"></div>`;
+                }
                 
-                // 為遺漏的字添加底線提示 (不用刪除線)
-                const omittedStyle = status === 'omitted' ? 'bg-gray-200 underline decoration-gray-500 decoration-2 px-1' : '';
-                const insertedStyle = status === 'inserted' ? 'bg-purple-50 px-1' : '';
+                // 顯示這一行的所有字
+                for (let i = 0; i < lineWordCount && currentWordIndex < alignment.length; i++) {
+                    const item = alignment[currentWordIndex];
+                    const word = item.word || '';
+                    const status = item.status || 'correct';
+                    const colorClass = statusMap[status] || 'text-gray-900';
+                    const escapedWord = word.replace(/'/g, "\\'");
+                    
+                    // 為遺漏的字添加底線提示
+                    const omittedStyle = status === 'omitted' ? 'bg-gray-200 underline decoration-gray-500 decoration-2 px-1' : '';
+                    const insertedStyle = status === 'inserted' ? 'bg-purple-50 px-1' : '';
 
-                htmlContent += `
-                    <span 
-                        class="${colorClass} ${wordBaseClasses} ${omittedStyle} ${insertedStyle}"
-                        onclick="speakWord('${escapedWord}')"
-                        title="點擊聽取發音: ${word} [${status}]"
-                    >
-                        ${word}
-                    </span>
-                `;
-                
-                if (isSentenceEnd) {
-                    htmlContent += `<div class="w-full mb-3"></div>`; 
+                    htmlContent += `
+                        <span 
+                            class="${colorClass} ${wordBaseClasses} ${omittedStyle} ${insertedStyle}"
+                            onclick="speakWord('${escapedWord}')"
+                            title="點擊聽取發音: ${word} [${status}]"
+                        >
+                            ${word}
+                        </span>
+                    `;
+                    
+                    currentWordIndex++;
                 }
             });
 
@@ -1083,6 +1409,30 @@
             };
             
             console.log('單字對齊統計:', stats);
+            
+            // 計算完成度：優先使用 API 返回的值，沒有則自己計算
+            const totalWords = stats.correct + stats.mispronounced + stats.omitted;
+            const readWords = stats.correct + stats.mispronounced;
+            
+            let completionPercentage;
+            if (apiCompletionPercentage !== null && apiCompletionPercentage !== undefined) {
+                // 使用 API 返回的完成度
+                completionPercentage = apiCompletionPercentage;
+                console.log('使用 API 返回的完成度:', completionPercentage);
+            } else {
+                // 自己計算完成度（向下兼容）
+                completionPercentage = totalWords > 0 ? Math.round((readWords / totalWords) * 100) : 0;
+                console.log('前端計算的完成度:', completionPercentage);
+            }
+            
+            // 顯示完成度
+            const completionPercentageEl = document.getElementById('completionPercentage');
+            const completionDetailEl = document.getElementById('completionDetail');
+            
+            if (completionPercentageEl && completionDetailEl) {
+                completionPercentageEl.textContent = `${completionPercentage}%`;
+                completionDetailEl.textContent = `已唸 ${readWords} 個字 / 總共 ${totalWords} 個字`;
+            }
         }
 
         function downloadAudio() {
@@ -1159,7 +1509,10 @@
             feedbackSummary.textContent = data.feedback_summary_chinese || 'AI 未提供總結回饋。';
             
             if (data.word_alignment && data.word_alignment.length > 0) {
-                renderColoredTranscript(data.word_alignment);
+                // 驗證並補齊漏掉的單字
+                const completeAlignment = verifyAndCompleteAlignment(data.word_alignment, readingScript);
+                // 傳入 API 返回的 completion_percentage（如果有）
+                renderColoredTranscript(completeAlignment, data.completion_percentage);
             } else {
                 coloredTranscript.innerHTML = '<span class="text-red-500">無法生成單字對齊分析。</span>';
             }
@@ -1229,6 +1582,67 @@
             showToast('⏰ 已自動清除資料 (閒置過久)', 'warning', 5000);
         }
 
+        function openGeminiUI() {
+            const script = document.getElementById('readingScript').value.trim();
+            
+            if (!script) {
+                showToast('⚠️ 請先輸入朗讀文稿', 'warning');
+                return;
+            }
+            
+            // 精簡版 Prompt（適合 URL 長度限制）
+            const geminiPrompt = `你是英語發音教練，請評分這段朗讀錄音。
+
+【原文】
+${script}
+
+【評分要求】
+1. 準確度分數 (0-100)：正確發音的單字比例
+2. 完成度百分比：實際唸出的字數 / 總字數 × 100%
+3. 發音問題：列出 2-3 個需改進的單字（含 IPA 音標）
+4. 語調與節奏：指出重音、升降調問題
+5. 練習建議：給 2-3 個具體可執行的方法
+6. 鼓勵的話
+
+【回覆格式（繁體中文）】
+【整體表現】
+（1-2句話總結）
+
+【準確度】XX%
+【完成度】XX%（已唸 X 個字 / 總共 X 個字）
+
+【發音問題】
+• vegetables /ˈvedʒtəbəlz/ - /dʒ/ 音不清楚
+• enough /ɪˈnʌf/ - /f/ 結尾要咬下唇
+（列出 2-3 個）
+
+【語調與節奏】
+• 疑問句結尾要升調 ↗
+• 注意輕重音差異
+
+【練習建議】
+1. 使用線上字典反覆聽
+2. 錄音後重聽對比
+3. 放慢速度練習
+
+【鼓勵的話】
+繼續加油！
+
+請開始評分。`;
+
+            // URL encode
+            const encodedPrompt = encodeURIComponent(geminiPrompt);
+            
+            // 開啟 Gemini AI Studio
+            const geminiURL = `https://aistudio.google.com/prompts/new?q=${encodedPrompt}`;
+            
+            // 新視窗開啟
+            window.open(geminiURL, '_blank');
+            
+            // 提示訊息
+            showToast('✅ 已開啟 Gemini，請上傳您的錄音檔', 'success');
+        }
+
         function manualCleanup() {
             const message = rememberApiKey 
                 ? '確定要清除所有資料嗎?\n\n這將清除:\n• 已儲存的 API Key\n• 錄音檔案\n• 文稿內容\n• 評分結果'
@@ -1266,6 +1680,7 @@
             const rememberCheckbox = document.getElementById('rememberKeyCheckbox');
             const scriptInputElem = document.getElementById('readingScript');
             const audioElem = document.getElementById('audioPlayback');
+            const downloadRecordingButton = document.getElementById('downloadRecordingButton');
             
             if (manualInput) manualInput.value = '';
             if (rememberCheckbox) rememberCheckbox.checked = false;
@@ -1276,6 +1691,9 @@
             if (audioElem) {
                 audioElem.src = '';
                 audioElem.classList.add('hidden');
+            }
+            if (downloadRecordingButton) {
+                downloadRecordingButton.classList.add('hidden');
             }
             
             resultsSection.classList.add('hidden');
@@ -1341,6 +1759,7 @@
             window.stopRecording = stopRecording;
             window.downloadAudio = downloadAudio;
             window.captureScreenshot = captureScreenshot;
+            window.openGeminiUI = openGeminiUI;
             window.continueSession = continueSession;
             window.manualCleanup = manualCleanup;
         };
