@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英語短母音聽力大挑戰</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F1E4; --bg-soft:#FBF7EE; --card:#FFFFFF;
+    --ink:#3B3A46; --ink-soft:#8A8797; --line:#EEE7D6;
+    --amber:#F5A623; --amber-d:#E7951A;
+    --purple:#7C5CE0; --purple2:#9A6BF2;
+    --a:#E8688F; --e:#8A6BD6; --i:#E8963F; --o:#37AE86; --u:#4A9BD4;
+    --good:#2B9C6A; --good-bg:#E7F7EF; --bad:#E5556E; --bad-bg:#FCEAEE;
+    --r:20px; --r-sm:14px;
+    --sh:0 10px 30px -12px rgba(60,50,90,.18);
+    --sh-soft:0 4px 14px -6px rgba(60,50,90,.14);
+    --disp:"Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --cjk:system-ui,-apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--cjk);
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    padding:8px 12px 14px;
+  }
+  .wrap{max-width:940px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  .topbar{
+    background:var(--card);border-radius:var(--r);box-shadow:var(--sh-soft);
+    padding:8px 15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    border:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+  .logo{
+    width:46px;height:46px;border-radius:13px;flex:0 0 auto;
+    background:linear-gradient(135deg,#F5A623,#F57C23);
+    display:grid;place-items:center;color:#fff;font-family:var(--disp);
+    font-weight:700;font-size:18px;box-shadow:0 6px 14px -6px rgba(245,124,35,.7);
+  }
+  .brand h1{font-size:19px;margin:0;font-weight:700;letter-spacing:.3px}
+  .brand p{margin:2px 0 0;font-size:11.5px;color:var(--ink-soft);font-family:var(--disp);letter-spacing:.4px}
+  .ctrl{
+    display:flex;align-items:center;gap:8px;background:#FBF3E1;color:#B87C15;
+    border:1px solid #F1E1BD;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;
+  }
+  .ctrl.purpleish{background:#F1ECFC;color:#6B4FC7;border-color:#E1D8F8}
+  .ctrl button, .btn{font-family:inherit}
+  .voice-seg{display:inline-flex;background:#FBF3E1;border:1px solid #F1E1BD;border-radius:999px;padding:3px}
+  .voice-seg button{
+    border:0;background:transparent;color:#B87C15;font-weight:600;font-size:12.5px;
+    padding:5px 11px;border-radius:999px;cursor:pointer
+  }
+  .voice-seg button.on{background:var(--amber);color:#fff;box-shadow:0 3px 8px -3px rgba(245,166,35,.8)}
+  .speed-pill{display:flex;align-items:center;gap:8px}
+  .speed-pill input[type=range]{width:82px;accent-color:var(--amber)}
+  .btn{
+    border:1px solid #E0D6F5;background:#F3EEFC;color:#6B4FC7;border-radius:999px;
+    padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:var(--sh-soft)}
+  .btn:active{transform:translateY(0)}
+
+  /* ---------- menu ---------- */
+  .hero{text-align:center;margin:14px 0 4px}
+  .hero h2{font-size:24px;margin:0;font-weight:700}
+  .hero .sub{color:var(--ink-soft);font-size:13.5px;margin-top:5px}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin:14px 0 10px}
+  @media(max-width:820px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:420px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:13px 12px;text-align:center;cursor:pointer;position:relative;overflow:hidden;
+    box-shadow:var(--sh-soft);transition:transform .14s ease, box-shadow .14s ease;
+  }
+  .card::before{content:"";position:absolute;inset:0 0 auto;height:5px;background:var(--accent)}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--sh)}
+  .card:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  .ipa{
+    display:inline-block;font-family:var(--disp);font-weight:600;font-size:14px;
+    color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#fff);
+    border:1px solid color-mix(in srgb,var(--accent) 28%,#fff);
+    padding:2px 12px;border-radius:999px;margin-bottom:10px;
+  }
+  .card h3{font-family:var(--disp);font-size:20px;margin:0 0 6px;font-weight:600}
+  .egs{font-family:var(--disp);color:var(--ink-soft);font-size:12.5px;min-height:16px}
+  .best{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line);font-size:12px;color:var(--ink-soft)}
+  .best b{color:var(--ink);font-family:var(--disp)}
+
+  .banner{
+    display:flex;align-items:center;gap:14px;border-radius:var(--r);padding:12px 20px;cursor:pointer;
+    color:#fff;box-shadow:var(--sh);transition:transform .14s ease, box-shadow .14s ease;margin-top:10px;
+  }
+  .banner:hover{transform:translateY(-3px)}
+  .banner:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .banner .ic{width:44px;height:44px;border-radius:13px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:22px;flex:0 0 auto}
+  .banner .tx{flex:1 1 auto}
+  .banner .tx h3{margin:0;font-size:18px;font-weight:700}
+  .banner .tx p{margin:4px 0 0;font-size:12.5px;opacity:.92}
+  .banner .sc{background:rgba(255,255,255,.22);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;font-family:var(--disp);white-space:nowrap}
+  .banner .arw{font-size:22px;opacity:.9}
+  .b-mix{background:linear-gradient(100deg,var(--purple),var(--purple2))}
+  .b-id{background:linear-gradient(100deg,#1F9E7A,#37B58E)}
+  .b-min{background:linear-gradient(100deg,#E86A4E,#F0925E)}
+  .extra-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:10px}
+  @media(max-width:640px){.extra-row{grid-template-columns:1fr}}
+  .extra-row .banner{margin-top:0}
+
+  /* ---------- quiz ---------- */
+  .bar{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-soft);
+    padding:8px 15px;display:flex;align-items:center;gap:12px;margin-top:10px}
+  .bar .back{background:transparent;border:0;color:var(--ink-soft);font-size:14px;font-weight:600;cursor:pointer;padding:6px 4px}
+  .bar .back:hover{color:var(--ink)}
+  .tag{margin:0 auto;font-weight:700;font-size:13px;padding:6px 16px;border-radius:999px}
+  .qcount{font-family:var(--disp);font-weight:600;color:var(--ink-soft);font-size:14px}
+  .progress{height:9px;background:#EDE7D8;border-radius:999px;margin:9px 2px 0;overflow:hidden}
+  .progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),#F5C623);border-radius:999px;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-soft);
+    padding:16px 20px;margin-top:11px;text-align:center}
+  .prompt{color:var(--ink-soft);font-size:13.5px;margin-bottom:9px}
+  .showword{font-family:var(--disp);font-size:36px;font-weight:600;letter-spacing:1px;margin:2px 0 10px}
+  .speaker{
+    width:72px;height:72px;border-radius:50%;border:0;cursor:pointer;margin:2px auto 0;display:grid;place-items:center;
+    background:radial-gradient(circle at 30% 28%,#FDBE4A,var(--amber));color:#fff;
+    box-shadow:0 14px 30px -10px rgba(245,166,35,.85);transition:transform .12s ease;position:relative;
+  }
+  .speaker:hover{transform:scale(1.05)}
+  .speaker:active{transform:scale(.96)}
+  .speaker:focus-visible{outline:4px solid #F5C623;outline-offset:4px}
+  .speaker.ping::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--amber);opacity:.6;animation:ping .6s ease-out}
+  @keyframes ping{to{transform:scale(1.4);opacity:0}}
+  .speaker svg{width:33px;height:33px}
+  .replay-hint{display:inline-flex;gap:6px;align-items:center;background:#37343F;color:#fff;font-size:11.5px;
+    padding:5px 11px;border-radius:999px;margin-top:8px;font-weight:600}
+
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:14px}
+  .opts.five{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:560px){.opts,.opts.five{grid-template-columns:1fr 1fr}}
+  .opt{
+    background:var(--card);border:2px solid var(--line);border-radius:var(--r-sm);
+    padding:14px 14px;font-family:var(--disp);font-size:20px;font-weight:500;color:var(--ink);
+    cursor:pointer;transition:transform .1s ease,border-color .15s ease,background .15s ease;position:relative;
+  }
+  .opt .num{position:absolute;top:8px;left:10px;font-size:11px;color:var(--ink-soft);font-weight:600;
+    background:#F4F0E5;border-radius:6px;padding:1px 6px}
+  .opt .vlabel{display:block;font-size:13px;color:var(--ink-soft);font-weight:500;margin-top:4px}
+  .opt:hover:not(.locked){transform:translateY(-2px);border-color:var(--amber)}
+  .opt:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+  .opt.correct{border-color:var(--good);background:var(--good-bg);color:var(--good)}
+  .opt.wrong{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+  .opt.locked{cursor:default}
+  .opt.dim{opacity:.5}
+
+  .feedback{margin-top:12px;border-radius:var(--r-sm);padding:12px 16px;display:none;align-items:center;gap:14px;
+    animation:rise .3s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .feedback.show{display:flex}
+  .feedback.ok{background:var(--good-bg);border:1px solid #BEE9D3}
+  .feedback.no{background:var(--bad-bg);border:1px solid #F4C9D2}
+  .feedback .fic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:22px;flex:0 0 auto}
+  .feedback.ok .fic{background:var(--good)}
+  .feedback.no .fic{background:var(--bad)}
+  .feedback .ft{flex:1 1 auto;text-align:left}
+  .feedback .ft b{font-family:var(--disp);font-size:20px}
+  .feedback .ft .kk{color:var(--ink-soft);font-size:13px;margin-left:6px;font-family:var(--disp)}
+  .feedback .ft small{display:block;color:var(--ink-soft);margin-top:2px;font-size:12.5px}
+  .feedback .fbtns{display:flex;gap:8px;flex:0 0 auto}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .mini:hover{background:#FBF7EE}
+  .next{border:0;background:var(--amber);color:#fff;border-radius:999px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 14px -6px rgba(245,166,35,.8)}
+  .next:hover{background:var(--amber-d)}
+
+  /* ---------- result ---------- */
+  .result{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);
+    padding:20px 22px;margin-top:11px;text-align:center}
+  .ring{width:118px;height:118px;margin:4px auto 8px;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .val{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column}
+  .ring .val b{font-family:var(--disp);font-size:32px;line-height:1}
+  .ring .val span{font-size:12px;color:var(--ink-soft)}
+  .result h2{margin:6px 0 2px;font-size:24px}
+  .result .msg{color:var(--ink-soft);font-size:14px;margin-bottom:6px}
+  .review{text-align:left;margin:18px auto 0;max-width:520px}
+  .review h4{font-size:14px;margin:0 0 10px;color:var(--ink)}
+  .rrow{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#FBF7EE}
+  .rrow .rsp{width:30px;height:30px;border-radius:50%;background:var(--amber);color:#fff;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+  .rrow .rsp svg{width:15px;height:15px}
+  .rrow .rw{font-family:var(--disp);font-weight:600;font-size:17px}
+  .rrow .rkk{color:var(--ink-soft);font-size:12.5px;font-family:var(--disp)}
+  .rrow .rv{margin-left:auto;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .rbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+  .rbtns button{border:0;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .rp{background:var(--amber);color:#fff}
+  .rp:hover{background:var(--amber-d)}
+  .rs{background:#F3EEFC;color:#6B4FC7;border:1px solid #E0D6F5!important}
+  .rg{background:#EFF6F2;color:#1F9E7A;border:1px solid #CDE9DE!important}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(45,40,60,.5);display:none;align-items:flex-start;justify-content:center;
+    padding:26px 14px;z-index:50;overflow:auto}
+  .overlay.show{display:flex}
+  .modal{background:var(--bg-soft);border-radius:var(--r);max-width:920px;width:100%;box-shadow:0 30px 70px -20px rgba(0,0,0,.5)}
+  .mhead{background:linear-gradient(100deg,#F5A623,#F5871F);color:#fff;border-radius:var(--r) var(--r) 0 0;
+    padding:12px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0}
+  .mhead h3{margin:0;font-size:17px;font-weight:700;flex:1 1 auto}
+  .mhead .x{margin-left:auto;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.25);color:#fff;font-size:18px;cursor:pointer}
+  .mhead .x:hover{background:rgba(255,255,255,.4)}
+  .mcols{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px}
+  @media(max-width:780px){.mcols{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:460px){.mcols{grid-template-columns:1fr}}
+  .mcol{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;border-top:4px solid var(--accent)}
+  .mcol h4{margin:0 0 10px;text-align:center;font-family:var(--disp);font-size:15px;color:var(--accent)}
+  .wline{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:9px;cursor:pointer;transition:background .12s}
+  .wline:hover{background:color-mix(in srgb,var(--accent) 8%,#fff)}
+  .wline .w{font-family:var(--disp);font-weight:500;font-size:15px}
+  .wline .kk{color:var(--ink-soft);font-size:11px;font-family:var(--disp)}
+  .wline .sp{margin-left:auto;color:var(--accent);width:22px;height:22px;display:grid;place-items:center}
+  .wline .sp svg{width:15px;height:15px}
+  .mfoot{text-align:center;color:var(--ink-soft);font-size:12px;padding:6px 0 18px}
+
+  .foot{text-align:center;color:var(--ink-soft);font-size:11.5px;margin-top:16px;font-family:var(--disp)}
+  .hidden{display:none!important}
+  .warn{background:#FCEAEE;border:1px solid #F4C9D2;color:#B23A50;border-radius:12px;padding:12px 16px;font-size:13px;margin-top:14px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== HEADER ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">abc</div>
+      <div>
+        <h1>英語短母音聽力大挑戰</h1>
+        <p>Short Vowels Pronunciation Practice</p>
+      </div>
+    </div>
+    <div class="voice-seg" role="group" aria-label="選擇語音">
+      <button id="vf" class="on" onclick="setVoice('female')">👩 女聲</button>
+      <button id="vm" onclick="setVoice('male')">👨 男聲</button>
+    </div>
+    <div class="ctrl speed-pill">
+      <span>⏱️ 語速</span>
+      <input id="rate" type="range" min="0.5" max="1.2" step="0.1" value="1" oninput="setRate(this.value)" aria-label="語速">
+      <b id="rateVal" style="font-family:var(--disp)">1.0x</b>
+    </div>
+    <button class="btn" onclick="openList()">📖 單字總表</button>
+  </header>
+
+  <!-- ===== MENU ===== -->
+  <section id="menu">
+    <div class="hero">
+      <h2>選擇練習單元 🎯</h2>
+      <div class="sub">請選擇想練習的短母音，聆聽單字發音並從選項中找出正確答案！</div>
+    </div>
+    <div class="grid" id="vowelGrid"></div>
+
+    <div class="banner b-mix" tabindex="0" role="button" onclick="start('mix')" onkeydown="key(event,()=>start('mix'))">
+      <div class="ic">⚡</div>
+      <div class="tx"><h3>綜合聽力大挑戰 (MIX)</h3><p>從 50 個單字中混合出題，挑戰綜合聽力辨識能力！</p></div>
+      <div class="sc" id="best-mix">0 / 10</div>
+      <div class="arw">›</div>
+    </div>
+
+    <div class="extra-row">
+      <div class="banner b-id" tabindex="0" role="button" onclick="start('identify')" onkeydown="key(event,()=>start('identify'))">
+        <div class="ic">🔤</div>
+        <div class="tx"><h3>母音分類測驗</h3><p>看單字、聽發音，判斷它屬於哪一個短母音！</p></div>
+        <div class="sc" id="best-identify">0 / 10</div>
+        <div class="arw">›</div>
+      </div>
+      <div class="banner b-min" tabindex="0" role="button" onclick="start('minimal')" onkeydown="key(event,()=>start('minimal'))">
+        <div class="ic">🎧</div>
+        <div class="tx"><h3>最小對立音辨音</h3><p>man / men、big / bug…專練最容易聽混的母音對！</p></div>
+        <div class="sc" id="best-minimal">0 / 10</div>
+        <div class="arw">›</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== QUIZ ===== -->
+  <section id="quiz" class="hidden">
+    <div class="bar">
+      <button class="back" onclick="goMenu()">← 返回選單</button>
+      <span class="tag" id="qtag"></span>
+      <span class="qcount" id="qcount">題目 1 / 10</span>
+    </div>
+    <div class="progress"><i id="pbar"></i></div>
+
+    <div class="stage">
+      <div class="prompt" id="prompt">請專心聽聲音，點擊喇叭可重複發音：</div>
+      <div class="showword hidden" id="showword"></div>
+      <button class="speaker" id="spk" onclick="replay()" aria-label="播放發音">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1c2.9.9 5 3.5 5 6.7s-2.1 5.8-5 6.7v2.1c4-.9 7-4.5 7-8.8s-3-7.9-7-8.8z"/></svg>
+      </button>
+      <div><span class="replay-hint">🔊 按我發音</span></div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </section>
+
+  <!-- ===== RESULT ===== -->
+  <section id="result" class="hidden"></section>
+
+  <div class="foot">英語短母音聽力大挑戰 © 2026 · Short Vowels Phonics Interactive Learning</div>
+</div>
+
+<!-- ===== WORD LIST MODAL ===== -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeList()">
+  <div class="modal">
+    <div class="mhead">
+      <span>📖</span>
+      <h3>短母音單字對照總表 (Short Vowels List)</h3>
+      <button class="x" onclick="closeList()" aria-label="關閉">✕</button>
+    </div>
+    <div class="mcols" id="mcols"></div>
+    <div class="mfoot">點擊任一單字即可聆聽標準發音與對照 KK 音標</div>
+  </div>
+</div>
+
+<script>
+/* ============ DATA ============ */
+const VOWELS = [
+  {k:'a', label:'short A', ipa:'/æ/', color:'var(--a)',
+   words:[['man','mæn'],['mad','mæd'],['map','mæp'],['mask','mæsk'],['lab','læb'],['fast','fæst'],['hand','hænd'],['ask','æsk'],['and','ænd'],['cat','kæt']]},
+  {k:'e', label:'short E', ipa:'/ɛ/', color:'var(--e)',
+   words:[['get','gɛt'],['egg','ɛg'],['net','nɛt'],['wet','wɛt'],['set','sɛt'],['jet','dʒɛt'],['left','lɛft'],['desk','dɛsk'],['men','mɛn'],['help','hɛlp']]},
+  {k:'i', label:'short I', ipa:'/ɪ/', color:'var(--i)',
+   words:[['big','bɪg'],['dig','dɪg'],['hit','hɪt'],['will','wɪl'],['fix','fɪks'],['hill','hɪl'],['did','dɪd'],['sit','sɪt'],['kid','kɪd'],['lift','lɪft']]},
+  {k:'o', label:'short O', ipa:'/ɑ/', color:'var(--o)',
+   words:[['not','nɑt'],['dot','dɑt'],['got','gɑt'],['hot','hɑt'],['rock','rɑk'],['smog','smɑg'],['fog','fɑg'],['log','lɑg'],['hop','hɑp'],['lot','lɑt']]},
+  {k:'u', label:'short U', ipa:'/ʌ/', color:'var(--u)',
+   words:[['up','ʌp'],['sun','sʌn'],['jump','dʒʌmp'],['fun','fʌn'],['bus','bʌs'],['run','rʌn'],['bun','bʌn'],['bug','bʌg'],['hug','hʌg'],['mud','mʌd']]},
+];
+const VMAP = Object.fromEntries(VOWELS.map(v=>[v.k,v]));
+// flat list: {w, kk, vk}
+const ALL = [];
+VOWELS.forEach(v=>v.words.forEach(([w,kk])=>ALL.push({w,kk,vk:v.k})));
+const byWord = Object.fromEntries(ALL.map(o=>[o.w,o]));
+
+/* ============ STATE ============ */
+const state = { voice:'female', rate:1.0, mode:null, vk:null, qs:[], idx:0, score:0, wrong:[], answered:false };
+let VF=null, VM=null, VANY=null, unlocked=false, audioCtx=null;
+
+/* ============ SPEECH ============ */
+function loadVoices(){
+  const vs = speechSynthesis.getVoices();
+  if(!vs.length) return;
+  const en = vs.filter(v=>/^en\b|-en|en[-_]/i.test(v.lang)||/english/i.test(v.name));
+  const pool = en.length?en:vs;
+  const fRe=/(female|zira|samantha|victoria|karen|moira|tessa|susan|linda|catherine|serena|fiona|amelie|joanna|salli|kimberly|female|woman|allison|ava|nicky|google us english)/i;
+  const mRe=/(male|david|daniel|alex|fred|thomas|george|james|mark|guy|paul|matthew|male|man|oliver|arthur|rishi)/i;
+  VF = pool.find(v=>fRe.test(v.name)) || pool[0] || null;
+  VM = pool.find(v=>mRe.test(v.name)) || pool.find(v=>v!==VF) || pool[0] || null;
+  VANY = pool[0] || vs[0] || null;
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+function unlock(){
+  if(unlocked || !('speechSynthesis' in window)) return;
+  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); }catch(e){}
+  try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  unlocked = true;
+}
+document.addEventListener('pointerdown', unlock, {once:false});
+function speak(word){
+  if(!('speechSynthesis' in window)) return;
+  unlock();
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  u.lang='en-US'; u.rate=state.rate; u.pitch=1;
+  const v = state.voice==='male' ? (VM||VANY) : (VF||VANY);
+  if(v) u.voice=v;
+  speechSynthesis.speak(u);
+}
+function tone(ok){
+  if(!audioCtx) return;
+  const now=audioCtx.currentTime;
+  const notes = ok?[[660,0],[880,.09]]:[[300,0]];
+  notes.forEach(([f,t])=>{
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=ok?'sine':'triangle'; o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,now+t);
+    g.gain.exponentialRampToValueAtTime(.16,now+t+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,now+t+ (ok?.18:.3));
+    o.connect(g).connect(audioCtx.destination); o.start(now+t); o.stop(now+t+(ok?.2:.32));
+  });
+}
+
+/* ============ SETTINGS ============ */
+function setVoice(v){ state.voice=v; document.getElementById('vf').classList.toggle('on',v==='female'); document.getElementById('vm').classList.toggle('on',v==='male'); }
+function setRate(r){ state.rate=parseFloat(r); document.getElementById('rateVal').textContent=state.rate.toFixed(1)+'x'; }
+
+/* ============ STORAGE (graceful) ============ */
+const MEM={};
+function bestKey(){ return state.mode==='vowel' ? 'vowel:'+state.vk : state.mode; }
+function getBest(key){
+  try{ const v=localStorage.getItem('sv_'+key); if(v!=null) return parseInt(v,10); }catch(e){}
+  return MEM[key]||0;
+}
+function setBest(key,val){
+  const cur=getBest(key); if(val<=cur) return;
+  MEM[key]=val;
+  try{ localStorage.setItem('sv_'+key,String(val)); }catch(e){}
+}
+
+/* ============ HELPERS ============ */
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; };
+const pick = (a,n)=>shuffle(a).slice(0,n);
+const skel = w => w.toLowerCase().replace(/[aeiou]/g,'');
+function sim(a,b){ // confusability of two words (higher = more confusable), a=target
+  if(a.w===b.w) return -999;
+  let s=0;
+  if(skel(a.w)===skel(b.w)) s+=100;           // same consonant frame → true minimal pair
+  if(a.w[0]===b.w[0]) s+=18;
+  if(a.w.at(-1)===b.w.at(-1)) s+=26;
+  if(a.w.length===b.w.length) s+=6;
+  if(a.vk===b.vk) s-=40;                        // want DIFFERENT vowel for contrast
+  return s;
+}
+
+/* ============ QUIZ BUILD ============ */
+function buildQuestions(mode, vk){
+  const qs=[];
+  if(mode==='vowel'){
+    const own = VMAP[vk].words.map(([w,kk])=>byWord[w]);
+    const others = ALL.filter(o=>o.vk!==vk);
+    shuffle(own).forEach(t=>{
+      const same = pick(own.filter(o=>o.w!==t.w),2);
+      const cross = pick(others,1);
+      qs.push(mkWordQ(t,[...same,...cross]));
+    });
+  } else if(mode==='mix'){
+    pick(ALL,10).forEach(t=>{
+      const d = pick(ALL.filter(o=>o.w!==t.w),3);
+      qs.push(mkWordQ(t,d));
+    });
+  } else if(mode==='identify'){
+    pick(ALL,10).forEach(t=>{
+      qs.push({type:'vowel', t, options:VOWELS.map(v=>v.k), answer:t.vk});
+    });
+  } else if(mode==='minimal'){
+    const fams={}; ALL.forEach(o=>{ (fams[skel(o.w)]=fams[skel(o.w)]||[]).push(o); });
+    const eligible = ALL.filter(o=>fams[skel(o.w)].length>1);
+    let targets = pick(eligible, Math.min(10,eligible.length));
+    while(targets.length<10) targets.push(pick(eligible,1)[0]); // pad if short
+    targets.forEach(t=>{
+      const partners = fams[skel(t.w)].filter(o=>o.w!==t.w);
+      let distract = partners.slice(0,3);
+      if(distract.length<3){
+        const rest = ALL.filter(o=>o.w!==t.w && !distract.some(d=>d.w===o.w))
+                        .map(o=>({o,s:sim(t,o)})).sort((x,y)=>y.s-x.s);
+        for(const r of rest){ if(distract.length>=3) break; distract.push(r.o); }
+      }
+      qs.push(mkWordQ(t, distract.slice(0,3)));
+    });
+  }
+  return qs;
+}
+function mkWordQ(t, distractors){
+  const options = shuffle([t, ...distractors]).map(o=>o.w);
+  return {type:'word', t, options, answer:t.w};
+}
+
+/* ============ FLOW ============ */
+const TAGSTYLE = {
+  vowel:{bg:'#FBF3E1',c:'#B87C15'}, mix:{bg:'#F1ECFC',c:'#6B4FC7'},
+  identify:{bg:'#E4F5EF',c:'#1F9E7A'}, minimal:{bg:'#FCEBE4',c:'#D3572F'}
+};
+function start(mode, vk){
+  if(!('speechSynthesis' in window)){ alert('您的瀏覽器不支援語音合成 (Web Speech API)，建議改用 Chrome / Edge / Safari 開啟。'); return; }
+  state.mode=mode; state.vk=vk||null; state.idx=0; state.score=0; state.wrong=[]; state.answered=false;
+  state.qs = buildQuestions(mode, vk);
+  const tag=document.getElementById('qtag');
+  const label = mode==='vowel'? VMAP[vk].label.toUpperCase()+' 練習'
+    : mode==='mix'?'綜合聽力大挑戰' : mode==='identify'?'母音分類測驗' : '最小對立音辨音';
+  tag.textContent=label;
+  const ts=TAGSTYLE[mode]; tag.style.background=ts.bg; tag.style.color=ts.c;
+  show('quiz'); renderQ();
+}
+function retryWrong(){
+  const qs = state.wrong.map(w=>{
+    // rebuild a fresh question for each wrong word in same mode
+    const t = w.q.t;
+    if(w.q.type==='vowel') return {type:'vowel',t,options:VOWELS.map(v=>v.k),answer:t.vk};
+    return mkWordQ(t, ALL.filter(o=>o.w!==t.w).map(o=>({o,s:sim(t,o)})).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.o));
+  });
+  state.idx=0; state.score=0; state.wrong=[]; state.answered=false; state.qs=qs;
+  show('quiz'); renderQ();
+}
+
+function renderQ(){
+  const q=state.qs[state.idx]; state.answered=false;
+  document.getElementById('qcount').textContent=`題目 ${state.idx+1} / ${state.qs.length}`;
+  document.getElementById('pbar').style.width = (state.idx/state.qs.length*100)+'%';
+  const fb=document.getElementById('feedback'); fb.className='feedback'; fb.innerHTML='';
+  const sw=document.getElementById('showword');
+  const prompt=document.getElementById('prompt');
+
+  if(q.type==='vowel'){
+    sw.textContent=q.t.w; sw.classList.remove('hidden');
+    prompt.textContent='看單字、聽發音，選出正確的短母音：';
+  }else{
+    sw.classList.add('hidden');
+    prompt.textContent = state.mode==='minimal'
+      ? '仔細聽——這些字只差在母音，選出你聽到的：'
+      : '請專心聽聲音，點擊喇叭可重複發音：';
+  }
+
+  const opts=document.getElementById('opts');
+  opts.className = q.type==='vowel' ? 'opts five' : 'opts';
+  opts.innerHTML='';
+  q.options.forEach((op,i)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.dataset.op=op;
+    if(q.type==='vowel'){
+      const v=VMAP[op];
+      b.style.setProperty('--accent',v.color);
+      b.innerHTML=`<span class="num">${i+1}</span><span style="color:${v.color}">${v.ipa}</span><span class="vlabel">${v.label}</span>`;
+    }else{
+      b.innerHTML=`<span class="num">${i+1}</span>${op}`;
+    }
+    b.onclick=()=>choose(op,b);
+    opts.appendChild(b);
+  });
+  // auto play (only for listening modes; identify also plays)
+  setTimeout(()=>replay(),300);
+}
+function replay(){
+  const q=state.qs[state.idx];
+  speak(q.t.w);
+  const s=document.getElementById('spk'); s.classList.remove('ping'); void s.offsetWidth; s.classList.add('ping');
+}
+function choose(op,btn){
+  if(state.answered) return;
+  state.answered=true;
+  const q=state.qs[state.idx];
+  const correct = op===q.answer;
+  const btns=[...document.querySelectorAll('#opts .opt')];
+  btns.forEach(b=>{
+    b.classList.add('locked');
+    if(b.dataset.op===q.answer) b.classList.add('correct');
+    else if(b===btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  if(correct){ state.score++; tone(true); } else { state.wrong.push({q}); tone(false); }
+  document.getElementById('pbar').style.width=((state.idx+1)/state.qs.length*100)+'%';
+
+  // feedback
+  const fb=document.getElementById('feedback');
+  fb.className='feedback show '+(correct?'ok':'no');
+  const v=VMAP[q.t.vk];
+  const ansTxt = q.type==='vowel'
+    ? `<b>${q.t.w}</b> <span class="kk">[${q.t.kk}]</span> — 屬於 <b style="color:${v.color}">${v.label} ${v.ipa}</b>`
+    : `<b>${q.t.w}</b> <span class="kk">[${q.t.kk}]</span> — ${v.label} ${v.ipa}`;
+  const last = state.idx===state.qs.length-1;
+  fb.innerHTML=`
+    <div class="fic">${correct?'✓':'✕'}</div>
+    <div class="ft">${correct?'答對了！':'再聽一次也沒關係～'}<small>正解：${ansTxt}</small></div>
+    <div class="fbtns">
+      <button class="mini" onclick="speak('${q.t.w}')">🔊 再聽</button>
+      <button class="next" onclick="nextQ()">${last?'看成績 →':'下一題 →'}</button>
+    </div>`;
+}
+function nextQ(){
+  if(state.idx<state.qs.length-1){ state.idx++; renderQ(); }
+  else finish();
+}
+function finish(){
+  const total=state.qs.length, sc=state.score, pct=Math.round(sc/total*100);
+  setBest(bestKey(), sc);
+  const msg = pct===100?'完美！全部答對 🎉' : pct>=80?'很棒，快要滿分囉！' : pct>=60?'不錯，多聽幾次會更準。' : pct>=40?'繼續加油，抓住母音的差別！':'別灰心，先從單字總表熟悉發音吧！';
+  const circ=2*Math.PI*44, off=circ*(1-sc/total);
+  let review='';
+  if(state.wrong.length){
+    review=`<div class="review"><h4>錯題複習（${state.wrong.length}）</h4>`+
+      state.wrong.map(({q})=>{
+        const v=VMAP[q.t.vk];
+        return `<div class="rrow">
+          <button class="rsp" onclick="speak('${q.t.w}')" aria-label="播放"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg></button>
+          <div><div class="rw">${q.t.w}</div><div class="rkk">[${q.t.kk}]</div></div>
+          <span class="rv" style="background:color-mix(in srgb,${v.color} 14%,#fff);color:${v.color}">${v.label} ${v.ipa}</span>
+        </div>`;
+      }).join('')+`</div>`;
+  }
+  const R=document.getElementById('result');
+  R.innerHTML=`
+    <div class="ring">
+      <svg width="118" height="118"><circle cx="59" cy="59" r="44" stroke="#EDE7D8" stroke-width="11" fill="none"/>
+      <circle cx="59" cy="59" r="44" stroke="${pct>=80?'#2B9C6A':pct>=50?'#F5A623':'#E5556E'}" stroke-width="11" fill="none"
+        stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset 1s ease"/></svg>
+      <div class="val"><b>${sc}/${total}</b><span>答對率 ${pct}%</span></div>
+    </div>
+    <h2>${msg}</h2>
+    <div class="msg">本單元最高分：${getBest(bestKey())} / ${total}</div>
+    ${review}
+    <div class="rbtns">
+      ${state.wrong.length?`<button class="rs" onclick="retryWrong()">只練錯題 (${state.wrong.length})</button>`:''}
+      <button class="rp" onclick="start(state.mode,state.vk)">再玩一次</button>
+      <button class="rg" onclick="goMenu()">返回選單</button>
+    </div>`;
+  show('result');
+}
+
+/* ============ MENU / NAV ============ */
+function show(id){ ['menu','quiz','result'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id)); if(id==='menu')refreshBest(); window.scrollTo({top:0,behavior:'smooth'}); }
+function goMenu(){ speechSynthesis && speechSynthesis.cancel(); show('menu'); }
+function key(e,fn){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }
+
+function refreshBest(){
+  VOWELS.forEach(v=>{ const el=document.getElementById('best-'+v.k); if(el) el.innerHTML=`最高得分 <b>${getBest('vowel:'+v.k)} / 10</b>`; });
+  document.getElementById('best-mix').textContent=getBest('mix')+' / 10';
+  document.getElementById('best-identify').textContent=getBest('identify')+' / 10';
+  document.getElementById('best-minimal').textContent=getBest('minimal')+' / 10';
+}
+function renderMenu(){
+  const g=document.getElementById('vowelGrid'); g.innerHTML='';
+  VOWELS.forEach(v=>{
+    const egs=v.words.slice(0,3).map(w=>w[0]).join(', ')+'…';
+    const c=document.createElement('div');
+    c.className='card'; c.tabIndex=0; c.setAttribute('role','button'); c.style.setProperty('--accent',v.color);
+    c.innerHTML=`<span class="ipa">${v.ipa}</span><h3>${v.label}</h3><div class="egs">${egs}</div>
+      <div class="best" id="best-${v.k}">最高得分 <b>0 / 10</b></div>`;
+    c.onclick=()=>start('vowel',v.k);
+    c.onkeydown=e=>key(e,()=>start('vowel',v.k));
+    g.appendChild(c);
+  });
+}
+
+/* ============ WORD LIST ============ */
+function renderList(){
+  const c=document.getElementById('mcols'); c.innerHTML='';
+  VOWELS.forEach(v=>{
+    const col=document.createElement('div'); col.className='mcol'; col.style.setProperty('--accent',v.color);
+    col.innerHTML=`<h4>${v.label} ${v.ipa}</h4>`+
+      v.words.map(([w,kk])=>`<div class="wline" onclick="speak('${w}')"><span class="w">${w}</span><span class="kk">[${kk}]</span>
+        <span class="sp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></span></div>`).join('');
+    c.appendChild(col);
+  });
+}
+function openList(){ document.getElementById('overlay').classList.add('show'); }
+function closeList(){ document.getElementById('overlay').classList.remove('show'); }
+
+/* ============ KEYBOARD ============ */
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('overlay').classList.contains('show')){ if(e.key==='Escape')closeList(); return; }
+  if(document.getElementById('quiz').classList.contains('hidden')) return;
+  if((e.key==='r'||e.key==='R'||e.code==='Space') && !state.answered){ e.preventDefault(); replay(); return; }
+  if(!state.answered && /^[1-9]$/.test(e.key)){
+    const b=document.querySelectorAll('#opts .opt')[+e.key-1];
+    if(b) b.click();
+  } else if(state.answered && e.key==='Enter'){ nextQ(); }
+});
+
+/* ============ INIT ============ */
+renderMenu(); renderList(); refreshBest();
+if(!('speechSynthesis' in window)){
+  const w=document.createElement('div'); w.className='warn';
+  w.textContent='提醒：此瀏覽器不支援 Web Speech API，發音功能將無法使用。建議改用 Chrome、Edge 或 Safari。';
+  document.querySelector('#menu .hero').after(w);
+}
+</script>
+</body>
+</html>
